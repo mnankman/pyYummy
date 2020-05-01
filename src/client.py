@@ -6,14 +6,22 @@ import threading
 import sys
 import getopt
 import server
+from console import AbstractConsole, TerminalConsole
 
 BUFSIZE = 1024
 
 class Client:
-    def __init__(self, host, port, name):
+    def __init__(self, host, port, name, console=None):
         self.name = name
         self.serverAddress = (host, port)
         self.sel = selectors.DefaultSelector()
+        if console==None:
+            self.console = TerminalConsole()
+        else:
+            self.console = console
+
+    def _print(self, *args):
+        self.console.print("[client] ", *args)
 
     def connect(self):
         msg = self.name + ": connected\n"
@@ -39,7 +47,7 @@ class Client:
         self.sel.modify(self.sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=data)  
 
     def close(self):
-        print("stopping client")
+        self._print("stopping client")
         self.sel.unregister(self.sock)
         self.sock.close()
 
@@ -53,11 +61,11 @@ class Client:
             data = key.data
             buf = sock.recv(BUFSIZE)
             if buf: 
-                print(buf.decode("utf-8"))
+                self._print(buf.decode("utf-8"))
                 data.recv_total += len(buf)
 #            if not buf or data.recv_total == data.msg_total:
             if not buf:
-                print("closing connection: ", data.connid)
+                self._print("closing connection: ", data.connid)
                 self.sel.unregister(sock)
                 sock.close()
 
@@ -66,7 +74,7 @@ class Client:
             sock = key.fileobj
             data = key.data
             if data.outb:
-                #print("sending ", repr(data.outb), "to connection: ", data.connid)
+                #self._print("sending ", repr(data.outb), "to connection: ", data.connid)
                 sent = sock.send(data.outb)
                 data.outb = data.outb[sent:]
 
@@ -84,7 +92,7 @@ class Client:
         finally:
             self.sel.close()
 
-def userInputThread(client,):
+def userInputThread(client):
     print("type 'quit' or 'exit' to exit")
     while True:
         message = input("")

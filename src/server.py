@@ -4,20 +4,28 @@ import selectors
 import types
 import sys
 import getopt
+from console import AbstractConsole, TerminalConsole
 
 BUFSIZE = 1024
 
 class Server:
-    def __init__(self, host, port):
+    def __init__(self, host, port, console=None):
         self.host = host
         self.port = port
         self.sel = selectors.DefaultSelector()
         self.received = []
         self.messageBoxes = {}
+        if console==None:
+            self.console = TerminalConsole()
+        else:
+            self.console = console
+
+    def _print(self, *args):
+        self.console.print("[server] ", *args)
 
     def acceptConnection(self, sock):
         conn, address = sock.accept()
-        print("accepted connection from address: ", address)
+        self._print("accepted connection from address: ", address)
         conn.setblocking(False)
         self.messageBoxes[address] = []
         data = types.SimpleNamespace(addr=address, inb=b"", outb=b"")
@@ -37,7 +45,7 @@ class Server:
         self.send(key, mask)
 
     def close(self, key):
-        print("closing connection to address: ", key.data.addr)
+        self._print("closing connection to address: ", key.data.addr)
         self.sel.unregister(key.fileobj)
         key.fileobj.close()
 
@@ -51,12 +59,12 @@ class Server:
                     #data.outb += repr(buf)
                     for addr in self.messageBoxes:
                         self.messageBoxes[addr].append(buf)
-                    print("received ", repr(buf), "from address: ", data.addr)
+                    self._print("received ", repr(buf), "from address: ", data.addr)
                 else:
-                    print("No data received")
+                    self._print("No data received")
                     self.close(key)
             except ConnectionResetError:
-                print("Connection with client lost")
+                self._print("Connection with client lost")
                 self.close(key)
 
 
@@ -65,13 +73,13 @@ class Server:
             sock = key.fileobj
             data = key.data
             if data.outb:
-                print("sending ", data.outb, "to address: ", data.addr)
+                self._print("sending ", data.outb, "to address: ", data.addr)
                 try:
                     sent = sock.send(data.outb)
                     data.outb = data.outb[sent:]
                 except OSError:
-                    print ("Error while sending to ", data.addr)
-                    print("closing connection to address: ", data.addr)
+                    self._print ("Error while sending to ", data.addr)
+                    self._print("closing connection to address: ", data.addr)
                     self.sel.unregister(sock)
                     sock.close()
 
@@ -83,7 +91,7 @@ class Server:
         self.listeningSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.listeningSock.bind((self.host, self.port))
         self.listeningSock.listen()
-        print("server listening on", (self.host, self.port))
+        self._print("server listening on", (self.host, self.port))
         self.listeningSock.setblocking(False)
         self.sel.register(self.listeningSock, selectors.EVENT_READ, data=None)
         try:
@@ -95,7 +103,7 @@ class Server:
                     else:
                         self.exchange(key, mask)
         except KeyboardInterrupt:
-            print("key pressed, stopping server")
+            self._print("key pressed, stopping server")
         finally:
             self.stop()
 
