@@ -92,6 +92,10 @@ class Client:
         finally:
             self.sel.close()
 
+    def startThread(self):
+        self.thread = threading.Thread(target=self.start)
+        self.thread.start()
+
 def userInputThread(client):
     print("type 'quit' or 'exit' to exit")
     while True:
