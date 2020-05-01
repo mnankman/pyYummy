@@ -3,6 +3,9 @@ import socket
 import selectors
 import types
 import threading
+import sys
+import getopt
+import server
 
 BUFSIZE = 1024
 
@@ -81,21 +84,54 @@ class Client:
         finally:
             self.sel.close()
 
-def userInputThread(client):
+def userInputThread(client,):
     print("type 'quit' or 'exit' to exit")
     while True:
         message = input("")
         if message=="quit" or message=="exit":
             client.close()
-            break
+            sys.exit()
         client.message(message)
 
+def integratedServerThread(host, port):
+    s = server.Server(host, port)
+    s.start()
 
 if __name__ == "__main__":
-    name = input("type your name:")
-    client = Client('127.0.0.1', 65430, name)
-    t = threading.Thread(target=userInputThread, args=(client,))
-    t.start()
+    helpTxt = "client.py -h <server hostname/ip-address> -p <server port> -a <alias> -i"
+    serverHost = "127.0.0.1"
+    serverPort = "65432"
+    integratedServer = False
+    alias = ""
+    try:
+        argv = sys.argv[1:]
+        opts, args = getopt.getopt(argv,"?ih:p:a:",["shost=","sport=","alias="])
+    except getopt.GetoptError:
+        print (helpTxt)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-?':
+            print (helpTxt)
+            sys.exit()
+        elif opt in ("-h", "--shost"):
+            serverHost = arg
+        elif opt in ("-p", "--sport"):
+            serverPort = arg
+        elif opt in ("-a", "--alias"):
+            alias = arg
+        elif opt == '-i':
+            integratedServer = True
+
+    if integratedServer:
+        inServer = server.Server(serverHost, int(serverPort))
+        ist = threading.Thread(target=inServer.start)
+        ist.start()
+
+    if (alias==""): 
+        alias = input("type your name:")
+    client = Client(serverHost, int(serverPort), alias)
+    uit = threading.Thread(target=userInputThread, args=(client,))
+    uit.start()
     client.start()
 
-    #client2 = Client('192.168.0.171', 51192)
+    

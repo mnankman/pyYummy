@@ -2,6 +2,8 @@ import sys
 import socket
 import selectors
 import types
+import sys
+import getopt
 
 BUFSIZE = 1024
 
@@ -98,6 +100,23 @@ class Server:
             self.stop()
 
 if __name__ == "__main__":
+    helpTxt = "server.py -h <server hostname/ip-address> -p <server port>"
+    serverHost = "127.0.0.1"
+    serverPort = "65432"
+    try:
+        argv = sys.argv[1:]
+        opts, args = getopt.getopt(argv,"?h:p:",["shost=","sport="])
+    except getopt.GetoptError:
+        print (helpTxt)
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-?':
+            print (helpTxt)
+            sys.exit()
+        elif opt in ("-h", "--shost"):
+            serverHost = arg
+        elif opt in ("-p", "--sport"):
+            serverPort = arg
 
-    server = Server('127.0.0.1', 65430)
+    server = Server(serverHost, int(serverPort))
     server.start()
