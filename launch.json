@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Python",
+            "type": "python",
+            "stopOnEntry": false,
+            "request": "launch",
+            "pythonPath": "${config.python.pythonPath}",
+            "program": "${file}",
+            "cwd": "${workspaceRoot}",
+            "debugOptions": [
+                "WaitOnAbnormalExit",
+                "WaitOnNormalExit",
+                "RedirectOutput"
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/lib:${workspaceFolder}/lib64"
+            }
+        }
+    ]
+}
