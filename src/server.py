@@ -6,16 +6,16 @@ import sys
 import getopt
 from console import AbstractConsole, TerminalConsole
 import threading
+from model import ServerModel
 
 BUFSIZE = 1024
 
 class Server:
     def __init__(self, host, port, console=None):
+        self.model = ServerModel()
         self.host = host
         self.port = port
         self.sel = selectors.DefaultSelector()
-        self.received = []
-        self.messageBoxes = {}
         if console==None:
             self.console = TerminalConsole()
         else:
@@ -28,16 +28,15 @@ class Server:
         conn, address = sock.accept()
         self._print("accepted connection from address: ", address)
         conn.setblocking(False)
-        self.messageBoxes[address] = []
+        self.model.connectMessageBox(address)
         data = types.SimpleNamespace(addr=address, inb=b"", outb=b"")
         self.sel.register(conn, selectors.EVENT_READ|selectors.EVENT_WRITE, data=data)
 
     def update(self, key):
         sock = key.fileobj
         data = key.data
-        for m in self.messageBoxes[data.addr]:
-            data.outb += m
-        self.messageBoxes[data.addr] = []
+        data.outb = self.model.getAllMessages(data.addr)
+        self.model.clearMessages(data.addr)
         self.sel.modify(sock, selectors.EVENT_READ | selectors.EVENT_WRITE, data=data)  
 
     def exchange(self, key, mask):
@@ -58,8 +57,7 @@ class Server:
                 buf = sock.recv(BUFSIZE)
                 if buf: 
                     #data.outb += repr(buf)
-                    for addr in self.messageBoxes:
-                        self.messageBoxes[addr].append(buf)
+                    self.model.receiveMessage(buf)
                     self._print("received ", repr(buf), "from address: ", data.addr)
                 else:
                     self._print("No data received")

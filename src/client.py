@@ -7,11 +7,13 @@ import sys
 import getopt
 import server
 from console import AbstractConsole, TerminalConsole
+from model import ClientModel
 
 BUFSIZE = 1024
 
 class Client:
     def __init__(self, host, port, name, console=None):
+        self.model = ClientModel()
         self.name = name
         self.serverAddress = (host, port)
         self.sel = selectors.DefaultSelector()
@@ -62,6 +64,7 @@ class Client:
             buf = sock.recv(BUFSIZE)
             if buf: 
                 self._print(buf.decode("utf-8"))
+                self.model.receiveMessage(buf)
                 data.recv_total += len(buf)
 #            if not buf or data.recv_total == data.msg_total:
             if not buf:
@@ -77,6 +80,7 @@ class Client:
                 #self._print("sending ", repr(data.outb), "to connection: ", data.connid)
                 sent = sock.send(data.outb)
                 data.outb = data.outb[sent:]
+                self.model.addSentMessage(sent)
 
     def start(self):     
         try:

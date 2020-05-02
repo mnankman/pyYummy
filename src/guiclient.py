@@ -1,7 +1,9 @@
 import wx
+import wx.lib.scrolledpanel
 from console import AbstractConsole
 import client
 import server
+from pubsub import Subscriber
 
 ID_NEWCHAT=101
 ID_JOINCHAT=102
@@ -34,17 +36,38 @@ class ChatPanel(wx.Panel):
         super().__init__(parent=parent, size=(400,700))
         self.client = client
         vbox = wx.BoxSizer(wx.VERTICAL)
-        hbox1 = wx.BoxSizer(wx.HORIZONTAL)
-        self.chatInputBox = wx.TextCtrl(self, 1, style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER, size=(400, 100))
+        vbox.Add(self._createChatScrollPanel())
+        vbox.Add(self._createChatInputBox())
+        self.SetSizer(vbox)
+        self.connected = False
+        self.addMessage("this is a message for you")
+        self.addMessage("this is also a message for you")
+        self.addMessage("this is another message for you")
+
+    def _createChatScrollPanel(self):
+        self.chatScrollPanel = wx.lib.scrolledpanel.ScrolledPanel(self,-1, size=(400,600), pos=(0,28), style=wx.SIMPLE_BORDER)
+        self.chatScrollPanel.SetupScrolling()
+        self.chatScrollPanel.SetBackgroundColour('#FFFFFF')
+        self.chatBox = wx.BoxSizer(wx.VERTICAL)
+        self.chatScrollPanel.SetSizer(self.chatBox)
+        return self.chatScrollPanel
+
+    def _createChatInputBox(self):
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.chatInputBox = wx.TextCtrl(self, 1, style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER, size=(400, 60))
         self.chatInputBox.SetBackgroundColour(wx.LIGHT_GREY)
         self.chatInputBox.SetDefaultStyle(wx.TextAttr(wx.BLACK, wx.LIGHT_GREY))
         font = wx.Font(wx.FontInfo(12))
         self.chatInputBox.SetFont(font)
-        hbox1.Add(self.chatInputBox, 1, wx.EXPAND)
-        vbox.Add(hbox1)
+        hbox.Add(self.chatInputBox, 1, wx.EXPAND)
         self.chatInputBox.Bind(event=wx.EVT_TEXT_ENTER, handler=self.OnEnter)
-        self.SetSizer(vbox)
-        self.connected = False
+        return hbox
+
+    def addMessage(self, message):
+        lbl = wx.StaticText(self.chatScrollPanel,-1,style = wx.ALIGN_RIGHT) 
+        lbl.SetLabel(message) 
+        lbl.Wrap(200) 
+        self.chatBox.Add(lbl, 0, wx.ALIGN_LEFT)        
 
     def setClient(self, client):
         self.client = client
@@ -56,7 +79,7 @@ class ChatPanel(wx.Panel):
             self.client.message(e.GetString())
             self.chatInputBox.Clear()
 
-class ClientFrame(wx.Frame):    
+class ClientFrame(wx.Frame, Subscriber):    
     def __init__(self):
         super().__init__(parent=None, title='Chat Client')
         self.serverHost = "127.0.0.1"
@@ -75,7 +98,6 @@ class ClientFrame(wx.Frame):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(vsplitter, 1, wx.EXPAND)
         self.create_menu()
-#        self.create_toolbar(self.sizer)
         self.SetSizer(self.sizer)
         self.SetAutoLayout(1)
         self.sizer.Fit(self)
@@ -103,10 +125,14 @@ class ClientFrame(wx.Frame):
         self.Bind(event=wx.EVT_MENU, handler=self.OnNew, id=ID_NEWCHAT)
         self.Bind(event=wx.EVT_MENU, handler=self.OnJoin, id=ID_JOINCHAT)
 
+    def onMessageReceived(self, payload):
+        self.chatPanel.addMessage(payload[1])
+
     def OnConnect(self, e):
         alias = "mark"
         self.client = client.Client(self.serverHost, self.serverPort, alias, self.clientConsolePanel)
         self.client.startThread()
+        self.client.model.subscribe(self, "msg_received", self.onMessageReceived)
         self.chatPanel.setClient(self.client)
 
     def OnStartServer(self, e):
