@@ -5,6 +5,7 @@ import types
 import sys
 import getopt
 from console import AbstractConsole, TerminalConsole
+import threading
 
 BUFSIZE = 1024
 
@@ -106,6 +107,10 @@ class Server:
             self._print("key pressed, stopping server")
         finally:
             self.stop()
+
+    def startThread(self):
+        self.thread = threading.Thread(target=self.start)
+        self.thread.start()
 
 if __name__ == "__main__":
     helpTxt = "server.py -h <server hostname/ip-address> -p <server port>"
