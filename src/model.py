@@ -349,7 +349,7 @@ if __name__ == "__main__":
         tc = t.container
     game.print()
 
-    if False:
+    if True:
         game.addPlayer("Joe")
         game.print()
 

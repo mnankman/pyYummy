@@ -6,6 +6,8 @@
 	],
 	"settings": {
 		"code-runner.saveAllFilesBeforeRun": true,
-		"code-runner.runInTerminal": true
+		"code-runner.runInTerminal": true,
+		"python.venvPath": "~/environments",
+		"python.pythonPath": "/home/mark/environments/yummy/bin/python"
 	}
 }
