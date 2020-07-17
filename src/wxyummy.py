@@ -182,6 +182,7 @@ class GamePanel(wx.Panel):
         self.tiles = []
 
     def refreshTiles(self):
+        self.controller.getCurrentGame().board.cleanUp()
         c = 0
         tx, ty = (0, 500)
         for t in self.player.plate.tiles.values():

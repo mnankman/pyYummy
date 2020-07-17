@@ -60,6 +60,7 @@ class TileContainer:
 
     def addTile(self, tile):
         fitPos = self.tileFitPosition(tile)
+        print (str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
             self.tiles[tile.id()] = tile
             self.lastTilePosition = fitPos
@@ -146,41 +147,51 @@ class Set(TileContainer):
         return fitPos
 
     def tileFitPosition(self, tile):
-        colors = {}
-        values = {}
+        """
+        This method checks if the new tile (tile) fits in this set.
+        To do so it first tries to determine the type of the set, based on the current contents.
+        A COLORSET contains tiles of the same value, with different colors
+        A VALUESET contains a number range (for example, 2,3,4) with the same color    
+        """
+        colors = {} #dict for collecting all the colors in the set
+        values = {} #dict for collecting all the values in the set
         for t in self.tiles.values():
             colors[t.color] = True
             values[t.value] = True
-        #values = dict(sorted(values.items(), key=lambda item: item[0])) 
         values = sorted(values)
         settype = None
         if len(colors)==1 and len(values)==1:
-            if not(tile.color in colors):
+            #the set contains a single tile
+            if not(tile.color in colors) and tile.value in values:
+                #the value of the new tile is contained in this set, but not its color
                 settype = Set.SETTYPE_COLORSET
             elif not(tile.value in values):
+                #the value of the new tile is not contained in this set
                 settype = Set.SETTYPE_VALUESET
         elif len(colors)>=1 and len(values)==1:
+            #the set contains multiple tiles with the same value, in multiple colors
             if not(tile.color in colors):
                 settype = Set.SETTYPE_COLORSET
         elif len(colors)==1 and len(values)>=1:
+            #the set contains multiple values of a single color
             if not(tile.value in values):
                 settype = Set.SETTYPE_VALUESET
 
         if settype==Set.SETTYPE_VALUESET:
-            if (values[0]==tile.value+1):
-                return 1
-            if (values[len(values)-1]==tile.value-1):
-                return len(values)
+            if (values[0]==tile.value+1) or (values[len(values)-1]==tile.value-1):
+                return len(values)+1
         elif settype==Set.SETTYPE_COLORSET:
-            return len(colors)+1
-        else:
+            if len(colors)<4: 
+                return len(colors)+1 
+        elif len(values)==0:
             return 1
-
+        
+        #when arrived here we can assume that the tile does not fit, so return zero
         return 0
 
     def moveTile(self, tile, targetContainer):
         if TileContainer.moveTile(self, tile, targetContainer):
-            tile.forgetPlate()
+#            tile.forgetPlate()
             return True
         else:
             return False
@@ -274,7 +285,12 @@ class Board(TileContainer):
         for s in self.sets:
             if s.isEmpty():
                 self.sets.pop(i)
-            else: i = i + 1
+            else: 
+                i = i + 1
+                for tId in s.tiles.copy():
+                    t = s.tiles[tId]
+                    if t.plate:
+                        t.move(t.plate)
 
     def addTile(self, tile):
         TileContainer.addTile(self, tile)
@@ -340,34 +356,54 @@ class Model:
             return self.currentGame.getPlayer(name)
         return None
 
-if __name__ == "__main__":
-    set1 = Set()
-    for v in range(1,4):
-        t = Tile(v, GameConstants.BLACK, v, set1)
-        t.print()
-        set1.addTile(t)
-    set1.print()
+class Test:
+    def __init__(self):
+        pass
 
-    set2 = Set()
-    for c in GameConstants.TILECOLORS:
-        t = Tile(c, c, 1, set2)
-        t.print()
-        set2.addTile(t)
-    set2.print()
+    def runAllTests(self):
+        self.runSetest1()
+        self.runSetTest2()
+        self.runGameTest()
+        self.runPlayerTest()
 
+    def runSetTest1(self):
+        print ("Test.runSetTest1")
+        set = Set()
+        for v in range(1,4):
+            t = Tile(v, GameConstants.BLACK, v, set)
+            t.print()
+            set.addTile(t)
+        set.print()
+        if set.addTile(Tile(5, GameConstants.BLACK, 5, set))>0:
+            print ("TEST FAILED: addTile should have returned 0")
+        set.print()
 
-    game = Game(4)
-    game.print()
+    def runSetTest2(self):
+        print ("Test.runSetTest")
+        set = Set()
+        for c in GameConstants.TILECOLORS:
+            t = Tile(c, c, 1, set)
+            t.print()
+            set.addTile(t)
+        set.print()
+        if set.addTile(Tile(5, GameConstants.BLACK, 1, set))>0:
+            print ("TEST FAILED: addTile should have returned 0")
+        set.print()
 
-    tc = game.board
-    for v in range(1,4):
-        t = game.pile.findTile(v, GameConstants.BLACK)
-        t.print()
-        t.move(tc)
-        tc = t.container
-    game.print()
+    def runGameTest(self):
+        game = Game(4)
+        game.print()
 
-    if True:
+        tc = game.board
+        for v in range(1,4):
+            t = game.pile.findTile(v, GameConstants.BLACK)
+            t.print()
+            t.move(tc)
+            tc = t.container
+        game.print()
+
+    def runPlayerTest(self):
+        game = Game(2)
         game.addPlayer("Joe")
         game.print()
 
@@ -386,5 +422,11 @@ if __name__ == "__main__":
             game.board.cleanUp()
             game.print()
             break
-    
+
+if __name__ == "__main__":
+    test = Test()
+    #test.runAllTests()
+    test.runSetTest1()
+    test.runSetTest2()
+
    
