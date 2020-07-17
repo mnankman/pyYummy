@@ -17,6 +17,7 @@ class ButtonPanel(wx.Panel):
         btnPlus = wx.Button(self, -1, "Plussss")
         btnPlus.Bind(wx.EVT_BUTTON, self.onPlusClicked)
         btnPlay = wx.Button(self, -1, "Plee")
+        btnPlay.Bind(wx.EVT_BUTTON, self.onPlayClicked)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(btnPlus)
         hbox.Add(btnPlay)
@@ -25,37 +26,100 @@ class ButtonPanel(wx.Panel):
     def onPlusClicked(self, event):
         self.parent.OnPlus(event)
 
+    def onPlayClicked(self, event):
+        self.controller.getCurrentGame().print()
+
+
+def rectsOverlap(r1, r2):
+    x1,y1,w1,h1 = r1
+    x2,y2,w2,h2 = r2
+    if (x1>=x2+w2) or (x1+w1<=x2) or (y1+h1<=y2) or (y1>=y2+h2):
+        return False
+    else:
+        return True
 
 class BoardPanel(wx.Panel):    
     def __init__(self, parent, controller):
         super().__init__(parent=parent, size=(800,500))
+        self.parent = parent
         self.controller = controller
         self.SetBackgroundColour('#888888')
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
+        self.Bind(wx.EVT_PAINT,self.onPaint)
+
+    def onPaint(self, event):
+        event.Skip()
+        setpanels = self.getObjectsByType(SetPanel)
+        for sp in setpanels:
+            sx,sy,sw,sh = sp.GetRect()
+            xOffset = 3
+            for t in sp.set.tiles:
+                tw = self.parent.findTileWidgetById(t)
+                if tw:
+                    w,h = tw.GetSize()
+                    tw.Move((sx+xOffset, sy+3))
+                    tw.Raise()
+                    tw.Refresh()
+                    xOffset = xOffset + w 
+
+    def reset(self):
+        for sp in self.getObjectsByType(SetPanel):
+            sp.Destroy()
+
+    def getObjectsByType(self, type):
+        result = []
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, type):
+                result.append(c)
+        return result
+
+    def findSetPanel(self, rect):
+        children = self.GetChildren()
+        setPnl = None
+        for c in children:
+            if isinstance(c, SetPanel):
+                if rectsOverlap(rect,c.GetRect()):
+                    setPnl = c
+                    break
+        return setPnl
+
+    def triggerSetPanels(self, event):
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, SetPanel):
+                c.onTileHover(event)
 
     def onTileHover(self, event):
         pos = event.pos
-        print ("hover:", pos)
+        self.triggerSetPanels(event)
 
     def onTileRelease(self, event):
         x,y = event.pos
         tile = event.obj.tile
-        print ("released:", (x,y), event.obj.tile.toString())
-        tile.move(self.controller.getCurrentGame().board)
-        self.controller.getCurrentGame().print()
-        setpanel = SetPanel(self, tile.container)
-        w,h = event.obj.GetSize()
-        setpanel.SetSize((w+6,h+10))
-        setpanel.Move((x-3,y-4))
+        setPnl = self.findSetPanel(event.obj.GetRect())
+        if setPnl:
+            setPnl.onTileRelease(event)
+        else:
+            print ("released on board:", (x,y), event.obj.tile.toString())
+            tile.move(self.controller.getCurrentGame().board)
+            self.controller.getCurrentGame().print()
+            setpanel = SetPanel(self, tile.container)
+            w,h = event.obj.GetSize()
+            setpanel.SetSize((w+6,h+10))
+            setpanel.Move((x-3,y-4))
         event.obj.Raise()
         self.Refresh()
 
-class SetPanel(dragable.DragablePanel):    
+class SetPanel(dragable.DragablePanel):  
+    normalPenColor = 'Black'
+    highlightPenColor = 'White'
     def __init__(self, parent, set):
 #        super().__init__(parent=parent, style=wx.TRANSPARENT_WINDOW)
         super().__init__(parent=parent)
         self.set = set
+        self.highlight = False
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
 
@@ -66,10 +130,27 @@ class SetPanel(dragable.DragablePanel):
         self.draw(dc)
 
     def draw(self,dc):
-        dc.SetPen(wx.Pen('Black', 1, wx.PENSTYLE_DOT))
+        if self.highlight:
+            dc.SetPen(wx.Pen(SetPanel.highlightPenColor, 1, wx.PENSTYLE_DOT))
+        else:
+            dc.SetPen(wx.Pen(SetPanel.normalPenColor, 1, wx.PENSTYLE_DOT))
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         w,h = self.GetClientSize()
         dc.DrawRectangle(0,0,w,h)
+
+    def onTileHover(self, event):
+        if rectsOverlap(event.obj.GetRect(), self.GetRect()):
+            self.highlight = True
+        else:
+            self.highlight = False
+        self.Refresh()
+
+    def onTileRelease(self, event):
+        tile = event.obj.tile
+        if tile.move(self.set):
+            w,h = self.GetClientSize()
+            self.SetSize(len(self.set.tiles)*36+6, h)
+            self.Refresh()
 
 class PlatePanel(wx.Panel):    
     def __init__(self, parent):
@@ -94,28 +175,39 @@ class GamePanel(wx.Panel):
         self.newGame()
         self.SetSizer(vbox)
 
-    def initTiles(self):
+    def resetTileWidgets(self):
         if self.tiles != None:
             for tObj in self.tiles:
                 tObj.Destroy()
-
         self.tiles = []
+
+    def refreshTiles(self):
         c = 0
         tx, ty = (0, 500)
         for t in self.player.plate.tiles.values():
-            tile = TileWidget(self, t)
+            tile = self.findTileWidgetById(t.id())
+            if not tile: 
+                tile = TileWidget(self, t)
+                self.tiles.append(tile)
+                tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
+                tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
             tile.Move((tx,ty))
-            self.tiles.append(tile)
             tx = tx+40
-            tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
-            tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
 
+    def findTileWidgetById(self, tId):
+        for c in self.GetChildren():
+            if isinstance(c, TileWidget):
+                if tId==c.tile.id():
+                    return c
+        return None
             
     def newGame(self):
         self.controller.newGame(2)
         self.controller.addPlayer("player1")
         self.player = self.controller.getPlayer("player1")
-        self.initTiles()
+        self.boardPanel.reset()
+        self.resetTileWidgets()
+        self.refreshTiles()
 
     def getGame(self):
         return self.game
@@ -123,7 +215,8 @@ class GamePanel(wx.Panel):
     def plus(self):
         if self.player != None:
             self.player.pickTile()
-            self.initTiles()
+            self.refreshTiles()
+            self.Refresh()
 
 
 class MainWindow(wx.Frame):
