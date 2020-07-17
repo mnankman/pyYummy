@@ -321,6 +321,24 @@ class Player:
     def print(self):
         print(self.toString())
 
+class Model:
+    def __init__(self):
+        self.currentGame = None
+
+    def newGame(self, n):
+        self.currentGame = Game(n)
+
+    def addPlayer(self, name):
+        if self.currentGame:
+            self.currentGame.addPlayer(name)
+
+    def getCurrentGame(self):
+        return self.currentGame
+
+    def getPlayer(self, name):
+        if self.currentGame:
+            return self.currentGame.getPlayer(name)
+        return None
 
 if __name__ == "__main__":
     set1 = Set()

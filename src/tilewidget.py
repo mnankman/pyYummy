@@ -16,7 +16,6 @@ class TileWidget(DragablePanel):
         vbox = wx.BoxSizer(wx.VERTICAL)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.parent = parent
         self.SetBackgroundColour('#FFFFB8')
         self.SetForegroundColour(COLORS[self.tile.color])
 
@@ -26,3 +25,17 @@ class TileWidget(DragablePanel):
         vbox.Add(hbox, 1, wx.ALL|wx.ALIGN_CENTER, 5)
 
         self.SetSizer(vbox)
+        self.Bind(wx.EVT_PAINT,self.onPaint)
+
+    def onPaint(self, event):
+        event.Skip()
+        #dc = wx.BufferedPaintDC(self)
+        dc = wx.PaintDC(self)
+        self.draw(dc)
+
+    def draw(self,dc):
+        dc.SetPen(wx.Pen('Black', 1, wx.SOLID))
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        w,h = self.GetClientSize()
+        dc.DrawRectangle(0,0,w,h)
+

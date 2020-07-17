@@ -2,6 +2,7 @@ import wx
 from tilewidget import TileWidget
 import dragable
 import model
+from controller import Controller
 
 ID_NEWGAME=101
 ID_CONNECT=104
@@ -9,9 +10,10 @@ ID_EXIT=200
 ID_SENDMESSAGE=500
 
 class ButtonPanel(wx.Panel):    
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent=parent, size=(800,30))
         self.parent = parent
+        self.controller = controller
         btnPlus = wx.Button(self, -1, "Plussss")
         btnPlus.Bind(wx.EVT_BUTTON, self.onPlusClicked)
         btnPlay = wx.Button(self, -1, "Plee")
@@ -25,11 +27,49 @@ class ButtonPanel(wx.Panel):
 
 
 class BoardPanel(wx.Panel):    
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent=parent, size=(800,500))
+        self.controller = controller
         self.SetBackgroundColour('#888888')
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
+
+    def onTileHover(self, event):
+        pos = event.pos
+        print ("hover:", pos)
+
+    def onTileRelease(self, event):
+        x,y = event.pos
+        tile = event.obj.tile
+        print ("released:", (x,y), event.obj.tile.toString())
+        tile.move(self.controller.getCurrentGame().board)
+        self.controller.getCurrentGame().print()
+        setpanel = SetPanel(self, tile.container)
+        w,h = event.obj.GetSize()
+        setpanel.SetSize((w+6,h+10))
+        setpanel.Move((x-3,y-4))
+        event.obj.Raise()
+        self.Refresh()
+
+class SetPanel(dragable.DragablePanel):    
+    def __init__(self, parent, set):
+#        super().__init__(parent=parent, style=wx.TRANSPARENT_WINDOW)
+        super().__init__(parent=parent)
+        self.set = set
+        self.SetBackgroundColour(parent.GetBackgroundColour())
+        self.Bind(wx.EVT_PAINT,self.onPaint)
+
+    def onPaint(self, event):
+        event.Skip()
+        #dc = wx.BufferedPaintDC(self)
+        dc = wx.PaintDC(self)
+        self.draw(dc)
+
+    def draw(self,dc):
+        dc.SetPen(wx.Pen('Black', 1, wx.PENSTYLE_DOT))
+        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+        w,h = self.GetClientSize()
+        dc.DrawRectangle(0,0,w,h)
 
 class PlatePanel(wx.Panel):    
     def __init__(self, parent):
@@ -37,14 +77,16 @@ class PlatePanel(wx.Panel):
         self.SetBackgroundColour('#CCCCCC')
 
 class GamePanel(wx.Panel):    
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent=parent, size=(800,600))
         self.SetBackgroundColour('#CCCCCC')
         self.tiles = None
+        self.game = None
+        self.controller = controller
         
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        self.boardPanel = BoardPanel(self)
+        self.boardPanel = BoardPanel(self, self.controller)
         self.platePanel = PlatePanel(self)
         vbox.Add(self.boardPanel, 1, wx.EXPAND)
         vbox.Add(self.platePanel, 1, wx.EXPAND)
@@ -65,22 +107,18 @@ class GamePanel(wx.Panel):
             tile.Move((tx,ty))
             self.tiles.append(tile)
             tx = tx+40
-            tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.onTileHover)
-            tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.onTileRelease)
+            tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
+            tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
 
-    def onTileHover(self, event):
-        pos = event.pos
-        print ("hover:", pos)
-
-    def onTileRelease(self, event):
-        pos = event.pos
-        print ("released:", pos, event.obj.tile.toString())
             
     def newGame(self):
-        self.game = model.Game(2)
-        self.game.addPlayer("player1")
-        self.player = self.game.getPlayer("player1")
+        self.controller.newGame(2)
+        self.controller.addPlayer("player1")
+        self.player = self.controller.getPlayer("player1")
         self.initTiles()
+
+    def getGame(self):
+        return self.game
 
     def plus(self):
         if self.player != None:
@@ -92,8 +130,10 @@ class MainWindow(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='WxYummy')
 
-        self.buttonPanel = ButtonPanel(self)
-        self.gamePanel = GamePanel(self)
+        self.controller = Controller()
+
+        self.buttonPanel = ButtonPanel(self, self.controller)
+        self.gamePanel = GamePanel(self, self.controller)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.buttonPanel)
