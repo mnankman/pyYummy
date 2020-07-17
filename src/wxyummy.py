@@ -1,5 +1,6 @@
 import wx
 from tilewidget import TileWidget
+import dragable
 import model
 
 ID_NEWGAME=101
@@ -60,10 +61,20 @@ class GamePanel(wx.Panel):
         c = 0
         tx, ty = (0, 500)
         for t in self.player.plate.tiles.values():
-            tile = TileWidget(self, t.value, t.color)
+            tile = TileWidget(self, t)
             tile.Move((tx,ty))
             self.tiles.append(tile)
             tx = tx+40
+            tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.onTileHover)
+            tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.onTileRelease)
+
+    def onTileHover(self, event):
+        pos = event.pos
+        print ("hover:", pos)
+
+    def onTileRelease(self, event):
+        pos = event.pos
+        print ("released:", pos, event.obj.tile.toString())
             
     def newGame(self):
         self.game = model.Game(2)
