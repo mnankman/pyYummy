@@ -361,34 +361,8 @@ class Test:
         pass
 
     def runAllTests(self):
-        self.runSetest1()
-        self.runSetTest2()
         self.runGameTest()
         self.runPlayerTest()
-
-    def runSetTest1(self):
-        print ("Test.runSetTest1")
-        set = Set()
-        for v in range(1,4):
-            t = Tile(v, GameConstants.BLACK, v, set)
-            t.print()
-            set.addTile(t)
-        set.print()
-        if set.addTile(Tile(5, GameConstants.BLACK, 5, set))>0:
-            print ("TEST FAILED: addTile should have returned 0")
-        set.print()
-
-    def runSetTest2(self):
-        print ("Test.runSetTest")
-        set = Set()
-        for c in GameConstants.TILECOLORS:
-            t = Tile(c, c, 1, set)
-            t.print()
-            set.addTile(t)
-        set.print()
-        if set.addTile(Tile(5, GameConstants.BLACK, 1, set))>0:
-            print ("TEST FAILED: addTile should have returned 0")
-        set.print()
 
     def runGameTest(self):
         game = Game(4)
@@ -415,6 +389,8 @@ class Test:
             t = joe.plate.tiles[tId]
             print("\nmoving to board:", t.toString())
             t.move(game.board)
+            game.print()
+            print("\nboard.cleanUp:")
             game.board.cleanUp()
             game.print()
             print("\nmoving back to plate:", t.toString())
@@ -426,7 +402,6 @@ class Test:
 if __name__ == "__main__":
     test = Test()
     #test.runAllTests()
-    test.runSetTest1()
-    test.runSetTest2()
+    test.runPlayerTest()
 
    
