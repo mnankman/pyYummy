@@ -1,6 +1,10 @@
 from pubsub import Publisher
 import random
 
+from log import Log
+log = Log()
+log.setVerbosity(Log.VERBOSITY_VERBOSE)
+
 class ServerModel:
     def __init__(self):
         self.messages = []
@@ -60,7 +64,7 @@ class TileContainer:
 
     def addTile(self, tile):
         fitPos = self.tileFitPosition(tile)
-        print (str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
+        log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
             self.tiles[tile.id()] = tile
             self.lastTilePosition = fitPos
@@ -68,8 +72,8 @@ class TileContainer:
         return fitPos
 
     def moveTile(self, tile, targetContainer):
-        #print ("moveTile(", tile.toString(), targetContainer.toString(), ")")
-        #print ("before move:", self.toString())
+        #log.trace("moveTile(", tile.toString(), targetContainer.toString(), ")")
+        #log.trace("before move:", self.toString())
         tId = tile.id()
         if tId in self.tiles:
             if targetContainer.addTile(tile)>0:
@@ -101,7 +105,7 @@ class TileContainer:
         return s
 
     def print(self):
-        print (self.toString())
+        log.trace(self.toString())
 
 class Game:
     def __init__(self, maxPlayers=4):
@@ -126,7 +130,7 @@ class Game:
         return s
 
     def print(self):
-        print (self.toString())
+        log.trace(self.toString())
 
 
 class Set(TileContainer):
@@ -228,7 +232,7 @@ class Tile:
         return self.value
 
     def print(self):
-        print (self.toString())
+        log.trace(self.toString())
 
 class Joker(Tile):
     def __init__(self, id, color, container):
@@ -264,7 +268,7 @@ class Pile(TileContainer):
         pickedTile = None
         if n>0:
             pickedTile = self.tiles[random.sample(list(self.tiles), 1)[0]]
-            print ("picked: ", pickedTile.toString())
+            log.trace("picked: ", pickedTile.toString())
             pickedTile.move(player.plate)
         return pickedTile
 
@@ -335,7 +339,7 @@ class Player:
         return s
 
     def print(self):
-        print(self.toString())
+        log.trace(self.toString())
 
 class Model:
     def __init__(self):
@@ -366,15 +370,15 @@ class Test:
 
     def runGameTest(self):
         game = Game(4)
-        game.print()
+        game.log.trace()
 
         tc = game.board
         for v in range(1,4):
             t = game.pile.findTile(v, GameConstants.BLACK)
-            t.print()
+            t.log.trace()
             t.move(tc)
             tc = t.container
-        game.print()
+        game.log.trace()
 
     def runPlayerTest(self):
         game = Game(2)
@@ -387,13 +391,13 @@ class Test:
 
         for tId in joe.plate.tiles:
             t = joe.plate.tiles[tId]
-            print("\nmoving to board:", t.toString())
+            log.trace("\nmoving to board:", t.toString())
             t.move(game.board)
             game.print()
-            print("\nboard.cleanUp:")
+            log.trace("\nboard.cleanUp:")
             game.board.cleanUp()
             game.print()
-            print("\nmoving back to plate:", t.toString())
+            log.trace("\nmoving back to plate:", t.toString())
             t.move(joe.plate)
             game.board.cleanUp()
             game.print()

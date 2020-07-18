@@ -1,6 +1,10 @@
 import unittest
 from model import *
 
+from log import Log
+log = Log()
+log.setVerbosity(Log.VERBOSITY_NONE)
+
 class ModelTestMethods(unittest.TestCase):
 
     def test_AddTilesToSet(self):
