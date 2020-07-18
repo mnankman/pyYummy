@@ -147,7 +147,7 @@ class SetPanel(dragable.DragablePanel):
         dc.DrawRoundedRectangle(0,0,w,h,6)
 
     def onTileHover(self, event):
-        if rectsOverlap(event.obj.GetRect(), self.GetRect()):
+        if rectsOverlap(event.obj.GetRect(), self.GetRect()) and self.set.tileFitPosition(event.obj.tile)>0:
             self.highlight = True
         else:
             self.highlight = False
@@ -225,7 +225,7 @@ class GamePanel(wx.Panel):
             self.player.pickTile()
             self.controller.getCurrentGame().board.cleanUp(False)
             self.refreshTiles()
-            self.boardPanel.reset()
+            self.boardPanel.cleanUpSets()
             self.Refresh()
 
     def play(self):
