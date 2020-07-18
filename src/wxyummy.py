@@ -1,4 +1,6 @@
 import wx
+import wx.lib.inspection
+
 from tilewidget import TileWidget
 import dragable
 import model
@@ -136,7 +138,7 @@ class SetPanel(dragable.DragablePanel):
             dc.SetPen(wx.Pen(SetPanel.normalPenColor, 1, wx.PENSTYLE_DOT))
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         w,h = self.GetClientSize()
-        dc.DrawRectangle(0,0,w,h)
+        dc.DrawRoundedRectangle(0,0,w,h,6)
 
     def onTileHover(self, event):
         if rectsOverlap(event.obj.GetRect(), self.GetRect()):
@@ -222,7 +224,11 @@ class GamePanel(wx.Panel):
 
 class MainWindow(wx.Frame):
     def __init__(self):
-        super().__init__(parent=None, title='WxYummy')
+        super().__init__(parent=None, title='Yummy')
+
+        iconFile = "yummy-icon-28-white.png"
+        icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
+        self.SetIcon(icon)
 
         self.controller = Controller()
 
@@ -270,5 +276,6 @@ class MainWindow(wx.Frame):
 if __name__ == '__main__':
     app = wx.App()
     w = MainWindow()
+#    wx.lib.inspection.InspectionTool().Show()
     app.MainLoop()
 
