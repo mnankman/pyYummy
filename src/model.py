@@ -150,6 +150,41 @@ class Set(TileContainer):
                 self.order.insert(fitPos-1, tile.id())
         return fitPos
 
+    def isValid(self):
+        """
+        This method checks if the set is valid.
+        All sets containing less than 3 tiles are invalid. 
+        For sets containing >3 tiles it tries to determine the type of the set, based on the current contents.
+        """
+        valid = False
+        if (len(self.tiles)>=3):
+            colors = {} #dict for collecting all the colors in the set
+            values = {} #dict for collecting all the values in the set
+            for t in self.tiles.values():
+                if not isinstance(t, Joker):
+                    colors[t.color] = True
+                    values[t.value] = True
+            if len(colors)>=1 and len(values)==1:
+                #the set contains multiple tiles with the same value, in multiple colors
+                valid = True
+            elif len(colors)==1 and len(values)>=1:
+                #the set contains multiple values of a single color
+                previousValue = None
+                valid = True #assume the set is valid
+                for tile in self.tiles.values():
+                    #inspect the contents of the set to see if they are consequent
+                    if previousValue==None:
+                        previousValue = tile.value
+                    else:
+                        if isinstance(tile, Joker):
+                            #a joker is always valid, skip it
+                            previousValue+=1
+                        else:
+                            #the difference between consequent values should be 1
+                            valid = (tile.value-previousValue == 1)
+                            previousValue = tile.value
+        return valid
+
     def tileFitPosition(self, tile):
         """
         This method checks if the new tile (tile) fits in this set.
@@ -166,15 +201,16 @@ class Set(TileContainer):
         settype = None
         if len(colors)==1 and len(values)==1:
             #the set contains a single tile
-            if not(tile.color in colors) and tile.value in values:
-                #the value of the new tile is contained in this set, but not its color
+            if not(tile.color in colors) and (isinstance(tile, Joker) or tile.value in values):
+                #the new tile is a joker, or the value of the new tile is contained in this set, but not its color
                 settype = Set.SETTYPE_COLORSET
-            elif not(tile.value in values):
-                #the value of the new tile is not contained in this set
+            elif not(isinstance(tile, Joker)) and not(tile.value in values):
+                #the tile is not a joker and the value of the new tile is not contained in this set
                 settype = Set.SETTYPE_VALUESET
         elif len(colors)>=1 and len(values)==1:
             #the set contains multiple tiles with the same value, in multiple colors
-            if not(tile.color in colors):
+            if not(tile.color in colors) or isinstance(tile, Joker):
+                #the set does not contain a tile with the new tile's color, or the new tile is a joker
                 settype = Set.SETTYPE_COLORSET
         elif len(colors)==1 and len(values)>=1:
             #the set contains multiple values of a single color
@@ -182,7 +218,11 @@ class Set(TileContainer):
                 settype = Set.SETTYPE_VALUESET
 
         if settype==Set.SETTYPE_VALUESET:
-            if (values[0]==tile.value+1) or (values[len(values)-1]==tile.value-1):
+            if isinstance(tile, Joker):
+                return len(values)+1
+            elif (values[0]==tile.value+1):
+                return 1
+            elif (values[len(values)-1]==tile.value-1):
                 return len(values)+1
         elif settype==Set.SETTYPE_COLORSET:
             if len(colors)<4: 
@@ -285,16 +325,26 @@ class Board(TileContainer):
         return set
 
     def cleanUp(self):
+        #cleanup unfinished and invalid sets
+        for s in self.sets:
+            if not s.isEmpty():
+                if s.isValid():
+                    for tId in s.tiles.copy():
+                        t = s.tiles[tId]
+                        t.forgetPlate()
+                else:
+                    for tId in s.tiles.copy():
+                        t = s.tiles[tId]
+                        if t.plate:
+                            #move tile back to the current player's plate
+                            t.move(t.plate)
+        #remove all empty sets
         i = 0
         for s in self.sets:
             if s.isEmpty():
                 self.sets.pop(i)
-            else: 
-                i = i + 1
-                for tId in s.tiles.copy():
-                    t = s.tiles[tId]
-                    if t.plate:
-                        t.move(t.plate)
+            else:
+                i+=1
 
     def addTile(self, tile):
         TileContainer.addTile(self, tile)

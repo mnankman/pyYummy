@@ -69,6 +69,11 @@ class BoardPanel(wx.Panel):
         for sp in self.getObjectsByType(SetPanel):
             sp.Destroy()
 
+    def cleanUpSets(self):
+        for sp in self.getObjectsByType(SetPanel):
+            if sp.set.isEmpty():
+                sp.Destroy()
+
     def getObjectsByType(self, type):
         result = []
         children = self.GetChildren()
@@ -219,6 +224,7 @@ class GamePanel(wx.Panel):
         if self.player != None:
             self.player.pickTile()
             self.refreshTiles()
+            self.boardPanel.reset()
             self.Refresh()
 
 
