@@ -324,11 +324,11 @@ class Board(TileContainer):
         tile.move(set)
         return set
 
-    def cleanUp(self):
+    def cleanUp(self, validateSets=True):
         #cleanup unfinished and invalid sets
         for s in self.sets:
             if not s.isEmpty():
-                if s.isValid():
+                if validateSets and s.isValid():
                     for tId in s.tiles.copy():
                         t = s.tiles[tId]
                         t.forgetPlate()

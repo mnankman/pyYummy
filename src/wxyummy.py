@@ -29,6 +29,7 @@ class ButtonPanel(wx.Panel):
         self.parent.OnPlus(event)
 
     def onPlayClicked(self, event):
+        self.parent.OnPlay(event)
         self.controller.getCurrentGame().print()
 
 
@@ -189,7 +190,6 @@ class GamePanel(wx.Panel):
         self.tiles = []
 
     def refreshTiles(self):
-        self.controller.getCurrentGame().board.cleanUp()
         c = 0
         tx, ty = (0, 500)
         for t in self.player.plate.tiles.values():
@@ -223,10 +223,16 @@ class GamePanel(wx.Panel):
     def plus(self):
         if self.player != None:
             self.player.pickTile()
+            self.controller.getCurrentGame().board.cleanUp(False)
             self.refreshTiles()
             self.boardPanel.reset()
             self.Refresh()
 
+    def play(self):
+        if self.player != None:
+            self.controller.getCurrentGame().board.cleanUp()
+            self.boardPanel.cleanUpSets()
+            self.Refresh()
 
 class MainWindow(wx.Frame):
     def __init__(self):
@@ -278,10 +284,13 @@ class MainWindow(wx.Frame):
     def OnPlus(self, e):
         self.gamePanel.plus()
 
+    def OnPlay(self, e):
+        self.gamePanel.play()
+
 
 if __name__ == '__main__':
     app = wx.App()
     w = MainWindow()
-#    wx.lib.inspection.InspectionTool().Show()
+    wx.lib.inspection.InspectionTool().Show()
     app.MainLoop()
 
