@@ -57,7 +57,7 @@ class BoardPanel(wx.Panel):
         for sp in setpanels:
             sx,sy,sw,sh = sp.GetRect()
             xOffset = 3
-            for t in sp.set.tiles:
+            for t in sp.set.getTiles():
                 tw = self.parent.findTileWidgetById(t)
                 if tw:
                     w,h = tw.GetSize()
@@ -157,7 +157,7 @@ class SetPanel(dragable.DragablePanel):
         tile = event.obj.tile
         if tile.move(self.set):
             w,h = self.GetClientSize()
-            self.SetSize(len(self.set.tiles)*36+6, h)
+            self.SetSize(len(self.set.getTiles())*36+6, h)
             self.Refresh()
 
 class PlatePanel(wx.Panel):    
@@ -169,7 +169,7 @@ class GamePanel(wx.Panel):
     def __init__(self, parent, controller):
         super().__init__(parent=parent, size=(800,600))
         self.SetBackgroundColour('#CCCCCC')
-        self.tiles = None
+        self.__tileWidgets__ = None
         self.game = None
         self.controller = controller
         
@@ -183,23 +183,29 @@ class GamePanel(wx.Panel):
         self.newGame()
         self.SetSizer(vbox)
 
+    def getTileWidgets(self):
+        return self.__tileWidgets__
+
+    def addTileWidget(self, tileWidget):
+        self.__tileWidgets__.append(tileWidget)
+
     def resetTileWidgets(self):
-        if self.tiles != None:
-            for tObj in self.tiles:
-                tObj.Destroy()
-        self.tiles = []
+        if self.getTileWidgets() != None:
+            for tileWidget in self.getTileWidgets():
+                tileWidget.Destroy()
+        self.__tileWidgets__ = []
 
     def refreshTiles(self):
         c = 0
         tx, ty = (0, 500)
-        for t in self.player.plate.tiles.values():
-            tile = self.findTileWidgetById(t.id())
-            if not tile: 
-                tile = TileWidget(self, t)
-                self.tiles.append(tile)
-                tile.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
-                tile.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
-            tile.Move((tx,ty))
+        for t in self.player.plate.getTiles().values():
+            tileWidget = self.findTileWidgetById(t.id())
+            if not tileWidget: 
+                tileWidget = TileWidget(self, t)
+                self.addTileWidget(tileWidget)
+                tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
+                tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
+            tileWidget.Move((tx,ty))
             tx = tx+40
 
     def findTileWidgetById(self, tId):
@@ -230,7 +236,8 @@ class GamePanel(wx.Panel):
 
     def play(self):
         if self.player != None:
-            self.controller.getCurrentGame().board.cleanUp()
+            self.player.commitMoves()
+            self.refreshTiles()
             self.boardPanel.cleanUpSets()
             self.Refresh()
 
