@@ -18,15 +18,15 @@ class ModelTestMethods(unittest.TestCase):
         #attempt to add same tile to the set again, it should fail (addTile returns 0)
         self.assertEqual(set.addTile(t), 0)
 
-    def test_AddWrongTileToSet(self):
+    def test_AddDoubleTileToColorSet(self):
         set = Set(self.root)
-        # create a sequence of tiles of the same color (black 1,2,3)
-        for v in range(1,4):
-            t = Tile(v, GameConstants.BLACK, v, set)
-            t.print()
-            self.assertEqual(set.addTile(t), v)
-        # attempt to add black 5 to the set, it should fail (addTile returns 0)
-        self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 5, set)), 0)
+        #create a set with 3 tiles with value 1, and different colors
+        self.assertEqual(set.addTile(Tile(1, GameConstants.BLACK, 1, set)), 1)
+        self.assertEqual(set.addTile(Tile(2, GameConstants.BLUE, 1, set)), 2)
+        self.assertEqual(set.addTile(Tile(3, GameConstants.RED, 1, set)), 3)
+
+        # attempt to add another black 1 to the set, it should fail (addTile returns 0)
+        self.assertEqual(set.addTile(Tile(4, GameConstants.BLACK, 1, set)), 0)
 
     def test_ValidColorSet(self):
         set = Set(self.root)
@@ -57,18 +57,26 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add another black 1 to the set, it should fail (addTile returns 0)
         self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 1, set)), 0)
 
+    def test_AddTileFitPosition(self):
+        set = Set(self.root)
+        self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 4, set)), 1)
+        #attempt to add a 3. it should be added to the front, restulting in fitpos==1
+        self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 3, set)), 1)
+        set.print()
+
     def test_AddWrongTileToSequenceSet(self):
         #test that you cannot add a wrong colored tile to a sequence
         set = Set(self.root)
-        i = 1
         # create a sequence of tiles of the same color (black 4,5,6)
         for v in range(1,4):
             t = Tile(v, GameConstants.BLACK, v+3, set)
             self.assertEqual(set.addTile(t), v)
+        # attempt to add another black 5 to the set, it should fail (addTile returns 0)
+        self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 4, set)), 0)
         # attempt to add a red 7 to the set, it should fail (addTile returns 0)
-        self.assertEqual(set.addTile(Tile(5, GameConstants.RED, 7, set)), 0)
+        self.assertEqual(set.addTile(Tile(6, GameConstants.RED, 7, set)), 0)
         # attempt to add a blue 1 to the set, it should fail (addTile returns 0)
-        self.assertEqual(set.addTile(Tile(6, GameConstants.BLUE, 1, set)), 0)
+        self.assertEqual(set.addTile(Tile(7, GameConstants.BLUE, 1, set)), 0)
 
     def test_AddJokerToFullSet(self):
         set = Set(self.root)

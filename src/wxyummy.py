@@ -57,8 +57,8 @@ class BoardPanel(wx.Panel):
         for sp in setpanels:
             sx,sy,sw,sh = sp.GetRect()
             xOffset = 3
-            for t in sp.set.getTiles():
-                tw = self.parent.findTileWidgetById(t)
+            for t in sp.set.getTilesSortedByValue():
+                tw = self.parent.findTileWidgetById(t.id())
                 if tw:
                     w,h = tw.GetSize()
                     tw.Move((sx+xOffset, sy+3))
@@ -298,6 +298,6 @@ class MainWindow(wx.Frame):
 if __name__ == '__main__':
     app = wx.App()
     w = MainWindow()
-    wx.lib.inspection.InspectionTool().Show()
+#    wx.lib.inspection.InspectionTool().Show()
     app.MainLoop()
 

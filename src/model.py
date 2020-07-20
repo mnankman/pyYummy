@@ -56,9 +56,11 @@ class GameConstants:
     TILECOLORNAMES = ["black", "blue", "red", "orange"]
     MAXTILEVALUE = 13
     TILEVALUES = range(1,MAXTILEVALUE+1)
+    MODELEVENTS = ["msg_modified"]
 
-class ModelObject:
+class ModelObject(Publisher):
     def __init__(self, parent=None):
+        super().__init__(GameConstants.MODELEVENTS)
         self.__modified__ = False
         self.__children__ = []
         self.__parent__ = None
@@ -69,6 +71,7 @@ class ModelObject:
 
     def setModified(self):
         self.__modified__ = True
+        Publisher.dispatch(self, "msg_modified", self)
 
     def clearModified(self, recursive=False):
         self.__modified__ = False
@@ -132,6 +135,9 @@ class TileContainer(ModelObject):
 
     def containsTile(self, tileId):
         return tileId in self.__tiles__
+
+    def getTilesSortedByValue(self):
+        return sorted(self.copyTiles().values(), key= lambda tile: tile.value)
 
     def addTile(self, tile):
         fitPos = self.tileFitPosition(tile)
@@ -234,16 +240,22 @@ class Set(TileContainer):
     def tileFitPosition(self, tile):
         """
         This method checks if the new tile (tile) fits in this set.
+        If it fits, this method returns the position where the new tile fits. 
+        That is either at the front (1) or at the end (length of set+1). Otherwise is returns 0 (zero)
         To do so it first tries to determine the type of the set, based on the current contents.
         A COLORSET contains tiles of the same value, with different colors
         A VALUESET contains a number range (for example, 2,3,4) with the same color    
         """
-        colors = {} #dict for collecting all the colors in the set
-        values = {} #dict for collecting all the values in the set
+        fitpos = 0 #0 means "does not fit"
+        colors = [] #dict for collecting all the colors in the set
+        values = [] #dict for collecting all the values in the set
         for t in self.getTiles().values():
-            colors[t.color] = True
-            values[t.value] = True
+            if not t.color in colors:
+                colors.append(t.color)
+            if not t.value in values:
+                values.append(t.value)
         values = sorted(values)
+        log.trace("sorted values =", values)
         settype = None
         if len(colors)==1 and len(values)==1:
             #the set contains a single tile
@@ -265,19 +277,22 @@ class Set(TileContainer):
 
         if settype==Set.SETTYPE_VALUESET:
             if isinstance(tile, Joker):
-                return len(values)+1
-            elif (values[0]==tile.value+1):
-                return 1
-            elif (values[len(values)-1]==tile.value-1):
-                return len(values)+1
+                fitpos = len(values)+1
+            elif (tile.color==colors[0]):
+                if (values[0]==tile.value+1):
+                    fitpos = 1
+                elif (values[len(values)-1]==tile.value-1):
+                    log.trace((values[len(values)-1], tile.value-1))
+                    fitpos = len(values)+1
         elif settype==Set.SETTYPE_COLORSET:
-            if len(colors)<4: 
-                return len(colors)+1 
+            if len(colors)<4 and (tile.value in values): 
+                if not(tile.color in colors): 
+                    fitpos = len(colors)+1 
         elif len(values)==0:
-            return 1
-        
-        #when arrived here we can assume that the tile does not fit, so return zero
-        return 0
+            fitpos = 1
+
+        log.trace(type(self), ".tileFitPosition(", tile.toString(), ") --> ", (settype, fitpos))     
+        return fitpos
 
     def moveTile(self, tile, targetContainer):
         if TileContainer.moveTile(self, tile, targetContainer):
