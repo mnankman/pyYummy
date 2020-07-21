@@ -13,16 +13,26 @@ ID_SENDMESSAGE=500
 
 class ButtonPanel(wx.Panel):    
     def __init__(self, parent, controller):
-        super().__init__(parent=parent, size=(800,30))
+        super().__init__(parent=parent, size=(800,45))
         self.parent = parent
         self.controller = controller
-        btnPlus = wx.Button(self, -1, "Plussss")
+
+        self.btnFacePlay = wx.Bitmap("yummy-btnface-play-28-white.png")
+        self.btnFacePlus = wx.Bitmap("yummy-btnface-plus-28-white.png")
+
+        btnPlus = wx.Button(self, -1, "", size=(40, 40), style=wx.NO_BORDER)
+        btnPlus.SetBackgroundColour("#333333")
+        btnPlus.SetBitmap(self.btnFacePlus)
         btnPlus.Bind(wx.EVT_BUTTON, self.onPlusClicked)
-        btnPlay = wx.Button(self, -1, "Plee")
+
+        btnPlay = wx.Button(self, -1, "", size=(40, 40), style=wx.NO_BORDER)
+        btnPlay.SetBackgroundColour("#333333")
+        btnPlay.SetBitmap(self.btnFacePlay)
         btnPlay.Bind(wx.EVT_BUTTON, self.onPlayClicked)
+
         hbox = wx.BoxSizer(wx.HORIZONTAL)
-        hbox.Add(btnPlus)
-        hbox.Add(btnPlay)
+        hbox.Add(btnPlus, 0, wx.ALL, 2)
+        hbox.Add(btnPlay, 0, wx.ALL, 2)
         self.SetSizer(hbox)
 
     def onPlusClicked(self, event):
@@ -59,7 +69,7 @@ class BoardPanel(wx.Panel):
             xOffset = 3
             for t in sp.set.getTilesSortedByValue():
                 tw = self.parent.findTileWidgetById(t.id())
-                if tw:
+                if tw and not(tw.HasCapture()):
                     w,h = tw.GetSize()
                     tw.Move((sx+xOffset, sy+3))
                     tw.Raise()
