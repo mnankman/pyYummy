@@ -3,7 +3,7 @@ import random
 
 from log import Log
 log = Log()
-log.setVerbosity(Log.VERBOSITY_VERBOSE)
+#log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
 class ServerModel:
     def __init__(self):
@@ -52,6 +52,7 @@ class GameConstants:
     BLUE = 1
     RED = 2
     ORANGE = 3
+    NOCOLOR = 99
     TILECOLORS = [BLACK,BLUE,RED,ORANGE]
     TILECOLORNAMES = ["black", "blue", "red", "orange"]
     MAXTILEVALUE = 13
@@ -202,6 +203,28 @@ class Set(TileContainer):
                 self.order.insert(fitPos-1, tile.id())
         return fitPos
 
+    def moveTile(self, tile, targetContainer):
+        if TileContainer.moveTile(self, tile, targetContainer):
+#            tile.forgetPlate()
+            for i in range(len(self.order)-1):
+                if self.order[i] == tile.id():
+                    self.order.pop(i)
+            return True
+        else:
+            return False
+
+    def getNeighbours(self, tile):
+        left,right = (None,None)
+        if tile.id() in self.order:
+            i = self.order.index(tile.id())
+            if i>0:
+                left = self.getTile(self.order[i-1])
+            if i<len(self.order)-1:
+                right = self.getTile(self.order[i+1])
+        log.trace(type(self), ".getNeighbours(", tile.toString(), ") --> ", (left,right))
+        log.trace("order = ", self.order)
+        return (left,right)
+
     def isValid(self):
         """
         This method checks if the set is valid.
@@ -214,8 +237,8 @@ class Set(TileContainer):
             values = {} #dict for collecting all the values in the set
             for t in self.getTiles().values():
                 if not isinstance(t, Joker):
-                    colors[t.color] = True
-                    values[t.value] = True
+                    colors[t.getColor()] = True
+                    values[t.getValue()] = True
             if len(colors)>=1 and len(values)==1:
                 #the set contains multiple tiles with the same value, in multiple colors
                 valid = True
@@ -226,7 +249,7 @@ class Set(TileContainer):
                 for tile in self.getTiles().values():
                     #inspect the contents of the set to see if they are consequent
                     if previousValue==None:
-                        previousValue = tile.value
+                        previousValue = tile.getValue()
                     else:
                         if isinstance(tile, Joker):
                             #a joker is always valid, skip it
@@ -234,7 +257,7 @@ class Set(TileContainer):
                         else:
                             #the difference between consequent values should be 1
                             valid = (tile.value-previousValue == 1)
-                            previousValue = tile.value
+                            previousValue = tile.getValue()
         return valid
 
     def tileFitPosition(self, tile):
@@ -250,56 +273,69 @@ class Set(TileContainer):
         colors = [] #dict for collecting all the colors in the set
         values = [] #dict for collecting all the values in the set
         for t in self.getTiles().values():
-            if not t.color in colors:
-                colors.append(t.color)
-            if not t.value in values:
-                values.append(t.value)
+            v = t.getValue()
+            if isinstance(t,Joker):
+                c = GameConstants.NOCOLOR
+            else:
+                c = t.getColor()
+            if not c in colors:
+                colors.append(c)
+            if not v in values:
+                values.append(v)
         values = sorted(values)
+        log.trace("colors =", colors)
         log.trace("sorted values =", values)
         settype = None
+        tv = tile.getValue()
+        tc = tile.getColor()
         if len(colors)==1 and len(values)==1:
+            #the set contains a single tile and that tile is a joker
+            if values[0] == 0:
+                settype = 0
             #the set contains a single tile
-            if not(tile.color in colors) and (isinstance(tile, Joker) or tile.value in values):
+            elif not(tc in colors) and (isinstance(tile, Joker) or tv in values):
                 #the new tile is a joker, or the value of the new tile is contained in this set, but not its color
                 settype = Set.SETTYPE_COLORSET
-            elif not(isinstance(tile, Joker)) and not(tile.value in values):
+            elif not(isinstance(tile, Joker)) and not(tv in values):
                 #the tile is not a joker and the value of the new tile is not contained in this set
                 settype = Set.SETTYPE_VALUESET
         elif len(colors)>=1 and len(values)==1:
+            #the set contains a joker, and one other tile
+            if GameConstants.NOCOLOR in colors and len(values)==1:
+                settype = 0
+            #the set contains a joker, and more than 2 other tiles with the same value
+            if GameConstants.NOCOLOR in colors and len(values)>1:
+                settype = Set.SETTYPE_COLORSET
             #the set contains multiple tiles with the same value, in multiple colors
-            if not(tile.color in colors) or isinstance(tile, Joker):
+            elif not(tc in colors) or isinstance(tile, Joker):
                 #the set does not contain a tile with the new tile's color, or the new tile is a joker
                 settype = Set.SETTYPE_COLORSET
         elif len(colors)==1 and len(values)>=1:
             #the set contains multiple values of a single color
-            if not(tile.value in values):
+            if not(tv in values):
                 settype = Set.SETTYPE_VALUESET
 
-        if settype==Set.SETTYPE_VALUESET:
+        if settype==0:
+            if not isinstance(tile, Joker):
+                fitpos = len(values)+1
+        elif settype==Set.SETTYPE_VALUESET:
             if isinstance(tile, Joker):
                 fitpos = len(values)+1
-            elif (tile.color==colors[0]):
-                if (values[0]==tile.value+1):
+            elif (tc==colors[0]):
+                if (values[0]==tv+1):
                     fitpos = 1
-                elif (values[len(values)-1]==tile.value-1):
-                    log.trace((values[len(values)-1], tile.value-1))
+                elif (values[len(values)-1]==tv-1):
+                    log.trace((values[len(values)-1], tv-1))
                     fitpos = len(values)+1
         elif settype==Set.SETTYPE_COLORSET:
-            if len(colors)<4 and (tile.value in values): 
-                if not(tile.color in colors): 
+            if len(colors)<4 and (tv in values): 
+                if not(tc in colors): 
                     fitpos = len(colors)+1 
         elif len(values)==0:
             fitpos = 1
 
         log.trace(type(self), ".tileFitPosition(", tile.toString(), ") --> ", (settype, fitpos))     
         return fitpos
-
-    def moveTile(self, tile, targetContainer):
-        if TileContainer.moveTile(self, tile, targetContainer):
-#            tile.forgetPlate()
-            return True
-        else:
-            return False
 
 class Tile(ModelObject):
     def __init__(self, id, color, value, container):
@@ -337,6 +373,9 @@ class Tile(ModelObject):
     def getValue(self):
         return self.value
 
+    def getColor(self):
+        return self.color
+
     def print(self):
         log.trace(self.toString())
 
@@ -344,8 +383,33 @@ class Joker(Tile):
     def __init__(self, id, color, container):
         Tile.__init__(self, id, color, 0, container)
 
+    def getColor(self):
+        if isinstance(self.container, Set):
+            left,right = self.container.getNeighbours(self)
+            if left and right:
+                if (left.getValue() == right.getValue()):
+                    return self.color
+                if (left.getValue()-2 == right.getValue()):
+                    return left.getColor()
+            elif left:
+                return left.getColor()
+            elif right:
+                return right.getColor()
+        return self.color
+
     def getValue(self):
-        return ":-)"
+        if isinstance(self.container, Set):
+            left,right = self.container.getNeighbours(self)
+            if left and right:
+                if (left.getValue() == right.getValue()):
+                    return left.getValue()
+                if (left.getValue()-2 == right.getValue()):
+                    return left.getValue()+1
+            elif left:
+                return left.getValue()
+            elif right:
+                return right.getValue()
+        return self.value
 
     def toString(self):
         s = "Joker(" + GameConstants.TILECOLORNAMES[self.color] + ")"

@@ -99,6 +99,26 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a joker to the set, it should not fail (addTile returns a position >0)
         self.assertNotEqual(set.addTile(Joker(5, GameConstants.BLACK, set)), 0)
 
+    def test_AddTileSequenceToSetWithJoker(self):
+        #create an empty set
+        set = Set(self.root)
+        #add a joker
+        set.addTile(Joker(1, GameConstants.BLACK, set))
+        # attempt to add a blue 1 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(2, GameConstants.BLUE, 1, set)), 0)
+        # attempt to add a blue 2 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(3, GameConstants.BLUE, 2, set)), 0)
+
+    def test_AddTilesToSetWithJoker(self):
+        #create an empty set
+        set = Set(self.root)
+        #add a joker
+        set.addTile(Joker(1, GameConstants.BLACK, set))
+        # attempt to add a blue 1 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(2, GameConstants.BLUE, 1, set)), 0)
+        # attempt to add a red 1 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(3, GameConstants.RED, 1, set)), 0)
+
 class GameTestMethods(unittest.TestCase):
 
     def setUp(self):

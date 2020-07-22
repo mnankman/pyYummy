@@ -9,9 +9,13 @@ class DragablePanel(wx.Panel):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
         self.mOffset = (0,0)
+        self.__dragged__ = False
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
         self.Bind(wx.EVT_MOTION,  self.OnMouseMove)
         self.Bind(wx.EVT_LEFT_UP,  self.OnMouseUp)
+
+    def isBeingDragged(self):
+        return self.__dragged__
 
     def OnMouseDown(self, event):
         self.CaptureMouse()
@@ -22,6 +26,7 @@ class DragablePanel(wx.Panel):
 
     def OnMouseMove(self, event):
         if event.Dragging() and event.LeftIsDown():
+            self.__dragged__ = True
             mx,my = self.parent.ScreenToClient(wx.GetMousePosition())
             ox,oy = self.mOffset
             self.Move((mx-ox, my-oy))
@@ -33,5 +38,6 @@ class DragablePanel(wx.Panel):
             self.ReleaseMouse()
             releaseEvt = DragableReleaseEvent(pos=self.GetPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
+            self.__dragged__ = False
 
 
