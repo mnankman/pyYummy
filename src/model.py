@@ -367,6 +367,7 @@ class Joker(Tile):
         Tile.__init__(self, id, color, 0, container)
 
     def getNeighbours(self, *args, **kwargs):
+        context = []
         try:
             context = kwargs["context"]
         except KeyError as e:
