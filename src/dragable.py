@@ -1,6 +1,9 @@
 import wx
 import wx.lib.newevent
 
+from log import Log
+log = Log()
+
 DragableHoverEvent, EVT_DRAGABLE_HOVER = wx.lib.newevent.NewEvent()
 DragableReleaseEvent, EVT_DRAGABLE_RELEASE = wx.lib.newevent.NewEvent()
 
@@ -34,8 +37,9 @@ class DragablePanel(wx.Panel):
             wx.PostEvent(self, hoverEvt)
 
     def OnMouseUp(self, event):
-        if (self.HasCapture()): 
-            self.ReleaseMouse()
+        log.trace(type(self),".OnMouseUp(",event,")")
+        if (self.isBeingDragged()): 
+            if (self.HasCapture()): self.ReleaseMouse()
             releaseEvt = DragableReleaseEvent(pos=self.GetPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
             self.__dragged__ = False

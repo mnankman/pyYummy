@@ -3,7 +3,7 @@ from model import *
 
 from log import Log
 log = Log()
-#log.setVerbosity(Log.VERBOSITY_VERBOSE)
+log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
 class ModelTestMethods(unittest.TestCase):
 
@@ -103,10 +103,12 @@ class ModelTestMethods(unittest.TestCase):
         set = Set(self.root)
         #add a joker
         set.addTile(Joker(1, GameConstants.BLACK, set))
-        # attempt to add a blue 1 to the set, it should NOT fail (addTile returns a pos>0)
-        self.assertNotEqual(set.addTile(Tile(2, GameConstants.BLUE, 1, set)), 0)
-        # attempt to add a blue 2 to the set, it should NOT fail (addTile returns a pos>0)
-        self.assertNotEqual(set.addTile(Tile(3, GameConstants.BLUE, 2, set)), 0)
+        # attempt to add a blue 7 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(2, GameConstants.BLUE, 7, set)), 0)
+        # attempt to add a blue 8 to the set, it should NOT fail (addTile returns a pos>0)
+        self.assertNotEqual(set.addTile(Tile(3, GameConstants.BLUE, 8, set)), 0)
+        # attempt to add a blue 5 to the set, it should NOT fail and addTile should return 1)
+        self.assertEqual(set.addTile(Tile(4, GameConstants.BLUE, 5, set)), 1)
 
     def test_AddGroupToSetWithJoker(self):
         #create an empty set

@@ -141,6 +141,9 @@ class TileContainer(ModelObject):
     def getTilesSortedByValue(self):
         return sorted(self.copyTiles().values(), key= lambda tile: tile.value)
 
+    def getTilesGroupedByColor(self):
+        return sorted(self.getTilesSortedByValue(), key= lambda tile: tile.color)
+
     def addTile(self, tile):
         fitPos = self.tileFitPosition(tile)
         log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
@@ -380,7 +383,12 @@ class Joker(Tile):
                 left = context[i-1]
             if i<len(context)-1:
                 right = context[i+1]
-        log.trace(type(self), ".getNeighbours(", util.collectionToString(context, lambda item: str(item.value)), ") --> ", (left,right))
+        log.trace(
+            type(self), 
+            ".getNeighbours(", 
+            util.collectionToString(context, lambda item: str(item)), 
+            ") --> ", 
+            (left,right))
         return (left,right)
 
     def getColor(self, *args, **kwargs):
@@ -390,10 +398,10 @@ class Joker(Tile):
             settype = None
         left,right = self.getNeighbours(*args, **kwargs)
         if left and right:
-            if (left.getValue() == right.getValue()):
-                return self.color
-            if (left.getValue()-2 == right.getValue()):
+            if settype == Set.SETTYPE_RUN:
                 return left.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
         elif left:
             if settype == Set.SETTYPE_RUN:
                 return left.getColor()
@@ -413,10 +421,10 @@ class Joker(Tile):
             settype = None
         left,right = self.getNeighbours(*args, **kwargs)
         if left and right:
-            if (left.getValue() == right.getValue()):
-                return left.getValue()
-            if (left.getValue()-2 == right.getValue()):
+            if settype == Set.SETTYPE_RUN:
                 return left.getValue()+1
+            elif settype == Set.SETTYPE_GROUP:
+                return left.getValue()
         elif left:
             if settype == Set.SETTYPE_RUN:
                 return left.getValue()+1
