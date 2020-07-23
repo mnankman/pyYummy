@@ -3,7 +3,7 @@ from model import *
 
 from log import Log
 log = Log()
-#log.setVerbosity(Log.VERBOSITY_NONE)
+#log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
 class ModelTestMethods(unittest.TestCase):
 
@@ -18,7 +18,7 @@ class ModelTestMethods(unittest.TestCase):
         #attempt to add same tile to the set again, it should fail (addTile returns 0)
         self.assertEqual(set.addTile(t), 0)
 
-    def test_AddDoubleTileToColorSet(self):
+    def test_AddDoubleTileToGroup(self):
         set = Set(self.root)
         #create a set with 3 tiles with value 1, and different colors
         self.assertEqual(set.addTile(Tile(1, GameConstants.BLACK, 1, set)), 1)
@@ -28,7 +28,7 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add another black 1 to the set, it should fail (addTile returns 0)
         self.assertEqual(set.addTile(Tile(4, GameConstants.BLACK, 1, set)), 0)
 
-    def test_ValidColorSet(self):
+    def test_ValidGroup(self):
         set = Set(self.root)
         i = 1
         #create a set with four tiles with value 1, and different colors
@@ -38,7 +38,7 @@ class ModelTestMethods(unittest.TestCase):
             i+=1
         self.assertTrue(set.isValid())
 
-    def test_ValidSequenceSet(self):
+    def test_ValidRun(self):
         set = Set(self.root)
         # create a sequence of tiles of the same color (black 1,2,3)
         for v in range(1,4):
@@ -46,7 +46,7 @@ class ModelTestMethods(unittest.TestCase):
             self.assertEqual(set.addTile(t), v)
         self.assertTrue(set.isValid())
 
-    def test_AddTileToFullSet(self):
+    def test_AddTileToFullGroup(self):
         set = Set(self.root)
         i = 1
         #create a set with four tiles with value 1, and different colors
@@ -61,10 +61,9 @@ class ModelTestMethods(unittest.TestCase):
         set = Set(self.root)
         self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 4, set)), 1)
         #attempt to add a 3. it should be added to the front, restulting in fitpos==1
-        self.assertEqual(set.addTile(Tile(5, GameConstants.BLACK, 3, set)), 1)
-        set.print()
+        self.assertEqual(set.addTile(Tile(6, GameConstants.BLACK, 3, set)), 1)
 
-    def test_AddWrongTileToSequenceSet(self):
+    def test_AddWrongTileToRun(self):
         #test that you cannot add a wrong colored tile to a sequence
         set = Set(self.root)
         # create a sequence of tiles of the same color (black 4,5,6)
@@ -78,7 +77,7 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a blue 1 to the set, it should fail (addTile returns 0)
         self.assertEqual(set.addTile(Tile(7, GameConstants.BLUE, 1, set)), 0)
 
-    def test_AddJokerToFullSet(self):
+    def test_AddJokerToFullGroup(self):
         set = Set(self.root)
         i = 1
         #create a set with four tiles with value 1, and different colors
@@ -89,7 +88,7 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a joker to the set, it should fail (addTile returns a position >0)
         self.assertEqual(set.addTile(Joker(5, GameConstants.BLACK, set)), 0)
 
-    def test_AddJokerToSequence(self):
+    def test_AddJokerToRun(self):
         set = Set(self.root)
         # create a sequence of tiles of the same color (black 1,2,3)
         for v in range(1,4):
@@ -99,7 +98,7 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a joker to the set, it should not fail (addTile returns a position >0)
         self.assertNotEqual(set.addTile(Joker(5, GameConstants.BLACK, set)), 0)
 
-    def test_AddTileSequenceToSetWithJoker(self):
+    def test_AddRunToSetWithJoker(self):
         #create an empty set
         set = Set(self.root)
         #add a joker
@@ -109,7 +108,7 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a blue 2 to the set, it should NOT fail (addTile returns a pos>0)
         self.assertNotEqual(set.addTile(Tile(3, GameConstants.BLUE, 2, set)), 0)
 
-    def test_AddTilesToSetWithJoker(self):
+    def test_AddGroupToSetWithJoker(self):
         #create an empty set
         set = Set(self.root)
         #add a joker
@@ -218,5 +217,6 @@ class GameTestMethods(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    #log.setVerbosity(Log.VERBOSITY_NONE)
     unittest.main()
     

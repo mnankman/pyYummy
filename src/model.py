@@ -1,5 +1,6 @@
 from pubsub import Publisher
 import random
+import util
 
 from log import Log
 log = Log()
@@ -187,8 +188,16 @@ class TileContainer(ModelObject):
 
 
 class Set(TileContainer):
-    SETTYPE_COLORSET = 1
-    SETTYPE_VALUESET = 2
+    SETTYPE_UNDECIDED = 0   
+    SETTYPE_GROUP = 1       #consists of tiles with different colors, but identical value
+    SETTYPE_RUN = 2         #consists of tiles with different subsequent values of a single color
+    SETTYPE_INVALID = -1
+    SETTYPES = {
+        SETTYPE_UNDECIDED: "Undecided",
+        SETTYPE_GROUP: "Group",
+        SETTYPE_RUN: "Run",
+        SETTYPE_INVALID: "Invalid"
+    }
     def __init__(self, parent):
         TileContainer.__init__(self, parent)
         self.order = []
@@ -213,129 +222,103 @@ class Set(TileContainer):
         else:
             return False
 
-    def getNeighbours(self, tile):
-        left,right = (None,None)
-        if tile.id() in self.order:
-            i = self.order.index(tile.id())
+    def isValidRun(self, tiles):
+        """
+        checks whether tiles is a valid run, by determining the largest and smallest difference between the tiles
+        for a valid run, both the largest difference and smallest difference is exactly 1 
+        """
+        N = len(tiles)
+        largestDiff = 0
+        smallestDiff = GameConstants.MAXTILEVALUE
+        for i in range(N):
             if i>0:
-                left = self.getTile(self.order[i-1])
-            if i<len(self.order)-1:
-                right = self.getTile(self.order[i+1])
-        log.trace(type(self), ".getNeighbours(", tile.toString(), ") --> ", (left,right))
-        log.trace("order = ", self.order)
-        return (left,right)
+                prevValue = tiles[i-1].getValue(context = tiles, settype = Set.SETTYPE_RUN)
+                thisValue = tiles[i].getValue(context = tiles, settype = Set.SETTYPE_RUN)
+                diff = thisValue - prevValue
+                if diff>largestDiff:
+                    largestDiff = diff
+                if diff<smallestDiff:
+                    smallestDiff = diff
+        log.trace(type(self), ".isValidRun(", util.collectionToString(tiles, lambda item: str(item.getValue(context=tiles, settype = Set.SETTYPE_RUN))), ") --> ", (largestDiff,smallestDiff))
+        return (largestDiff==1 and smallestDiff==1)
 
-    def isValid(self):
-        """
-        This method checks if the set is valid.
-        All sets containing less than 3 tiles are invalid. 
-        For sets containing >3 tiles it tries to determine the type of the set, based on the current contents.
-        """
-        valid = False
-        if (self.getSize()>=3):
-            colors = {} #dict for collecting all the colors in the set
-            values = {} #dict for collecting all the values in the set
-            for t in self.getTiles().values():
-                if not isinstance(t, Joker):
-                    colors[t.getColor()] = True
-                    values[t.getValue()] = True
-            if len(colors)>=1 and len(values)==1:
-                #the set contains multiple tiles with the same value, in multiple colors
-                valid = True
-            elif len(colors)==1 and len(values)>=1:
-                #the set contains multiple values of a single color
-                previousValue = None
-                valid = True #assume the set is valid
-                for tile in self.getTiles().values():
-                    #inspect the contents of the set to see if they are consequent
-                    if previousValue==None:
-                        previousValue = tile.getValue()
-                    else:
-                        if isinstance(tile, Joker):
-                            #a joker is always valid, skip it
-                            previousValue+=1
-                        else:
-                            #the difference between consequent values should be 1
-                            valid = (tile.value-previousValue == 1)
-                            previousValue = tile.getValue()
-        return valid
+    def isValidGroup(self, tiles):
+        N = len(tiles)
+        return N>2 and N<5
 
-    def tileFitPosition(self, tile):
+    def getSetType(self, tiles):
         """
-        This method checks if the new tile (tile) fits in this set.
-        If it fits, this method returns the position where the new tile fits. 
-        That is either at the front (1) or at the end (length of set+1). Otherwise is returns 0 (zero)
+        parameters:
+        - tiles: a flat list of Tile instances (not a Dict)
         To do so it first tries to determine the type of the set, based on the current contents.
-        A COLORSET contains tiles of the same value, with different colors
-        A VALUESET contains a number range (for example, 2,3,4) with the same color    
+        A GROUP contains tiles of the same value, with different colors
+        A RUN contains a number range (for example, 2,3,4) with the same color    
         """
-        fitpos = 0 #0 means "does not fit"
-        colors = [] #dict for collecting all the colors in the set
-        values = [] #dict for collecting all the values in the set
-        for t in self.getTiles().values():
-            v = t.getValue()
+        settype = Set.SETTYPE_INVALID
+        distinctcolors = {} 
+        distinctvalues = {} 
+        for t in tiles:
+            #get the value of the tile 
+            #if t is an instance of Joker, than that value depends of its neighbours
+            v = t.getValue(context = tiles)
             if isinstance(t,Joker):
+                # a joker is registered as a separate color
                 c = GameConstants.NOCOLOR
             else:
-                c = t.getColor()
-            if not c in colors:
-                colors.append(c)
-            if not v in values:
-                values.append(v)
-        values = sorted(values)
-        log.trace("colors =", colors)
-        log.trace("sorted values =", values)
-        settype = None
-        tv = tile.getValue()
-        tc = tile.getColor()
-        if len(colors)==1 and len(values)==1:
-            #the set contains a single tile and that tile is a joker
-            if values[0] == 0:
-                settype = 0
-            #the set contains a single tile
-            elif not(tc in colors) and (isinstance(tile, Joker) or tv in values):
-                #the new tile is a joker, or the value of the new tile is contained in this set, but not its color
-                settype = Set.SETTYPE_COLORSET
-            elif not(isinstance(tile, Joker)) and not(tv in values):
-                #the tile is not a joker and the value of the new tile is not contained in this set
-                settype = Set.SETTYPE_VALUESET
-        elif len(colors)>=1 and len(values)==1:
-            #the set contains a joker, and one other tile
-            if GameConstants.NOCOLOR in colors and len(values)==1:
-                settype = 0
-            #the set contains a joker, and more than 2 other tiles with the same value
-            if GameConstants.NOCOLOR in colors and len(values)>1:
-                settype = Set.SETTYPE_COLORSET
-            #the set contains multiple tiles with the same value, in multiple colors
-            elif not(tc in colors) or isinstance(tile, Joker):
-                #the set does not contain a tile with the new tile's color, or the new tile is a joker
-                settype = Set.SETTYPE_COLORSET
-        elif len(colors)==1 and len(values)>=1:
-            #the set contains multiple values of a single color
-            if not(tv in values):
-                settype = Set.SETTYPE_VALUESET
+                c = t.getColor(context = tiles)
+            if c in distinctcolors: distinctcolors[c]+=1 
+            else: distinctcolors[c]=1
+            if v in distinctvalues: distinctvalues[v]+=1 
+            else: distinctvalues[v]=1
+        doublecolors = util.filteredCount(lambda x: x>1, distinctcolors.values())
+        doublevalues = util.filteredCount(lambda x: x>1, distinctvalues.values())
+        DV = len(distinctvalues) #number of distinct values
+        DC = len(distinctcolors) #number of distinct colors
+        containsjoker = GameConstants.NOCOLOR in distinctcolors
+        if DC==1 and DV==1:
+            #the set contains a single tile, so the type cannot be determined yet
+            settype = Set.SETTYPE_UNDECIDED
+        elif DC>=1 and DV==1:
+            #the set contains multiple tiles of a single color
+            if containsjoker and DV==1:
+                #the set contains a joker, and one other tile
+                #because of the joker, the set type cannot be determined at this point
+                settype = Set.SETTYPE_UNDECIDED
+            else:
+                #the set contains multiple tiles (possibly with a joker) with the same value, in multiple colors
+                if doublecolors==0:
+                    settype = Set.SETTYPE_GROUP
+        elif DV>=1 and (DC==1 or (DC==2 and containsjoker)):
+            #the set contains multiple distinct values of a single color and perhaps a joker (DC==2)
+            if doublevalues==0 and self.isValidRun(tiles):
+                settype = Set.SETTYPE_RUN
+        log.trace(
+            type(self), 
+            ".getSetType(", 
+            util.collectionToString(
+                tiles, 
+                lambda item: str(item.getValue(context=tiles, settype=settype))), 
+            ") --> ", 
+            Set.SETTYPES[settype]
+        )
+        return settype
 
-        if settype==0:
-            if not isinstance(tile, Joker):
-                fitpos = len(values)+1
-        elif settype==Set.SETTYPE_VALUESET:
-            if isinstance(tile, Joker):
-                fitpos = len(values)+1
-            elif (tc==colors[0]):
-                if (values[0]==tv+1):
-                    fitpos = 1
-                elif (values[len(values)-1]==tv-1):
-                    log.trace((values[len(values)-1], tv-1))
-                    fitpos = len(values)+1
-        elif settype==Set.SETTYPE_COLORSET:
-            if len(colors)<4 and (tv in values): 
-                if not(tc in colors): 
-                    fitpos = len(colors)+1 
-        elif len(values)==0:
-            fitpos = 1
+    def tileFitPosition(self, tile):
+        if self.containsTile(tile.id()): return 0
+        sortedTiles = self.getTilesSortedByValue()
+        N = len(sortedTiles)
+        #try adding the new tile at the end of the set
+        if self.getSetType(sortedTiles+[tile]) != Set.SETTYPE_INVALID:
+            return N+1
+        #try adding the new tile at the beginning of the set
+        elif self.getSetType([tile]+sortedTiles) != Set.SETTYPE_INVALID:
+            return 1
+        else:
+            return 0
 
-        log.trace(type(self), ".tileFitPosition(", tile.toString(), ") --> ", (settype, fitpos))     
-        return fitpos
+    def isValid(self):
+        return self.getSize()>=3 and self.getSetType(self.getTilesSortedByValue()) != Set.SETTYPE_INVALID
+
 
 class Tile(ModelObject):
     def __init__(self, id, color, value, container):
@@ -370,10 +353,10 @@ class Tile(ModelObject):
         s = s + ")"
         return s
 
-    def getValue(self):
+    def getValue(self, *args, **kwargs):
         return self.value
 
-    def getColor(self):
+    def getColor(self, *args, **kwargs):
         return self.color
 
     def print(self):
@@ -383,31 +366,65 @@ class Joker(Tile):
     def __init__(self, id, color, container):
         Tile.__init__(self, id, color, 0, container)
 
-    def getColor(self):
-        if isinstance(self.container, Set):
-            left,right = self.container.getNeighbours(self)
-            if left and right:
-                if (left.getValue() == right.getValue()):
-                    return self.color
-                if (left.getValue()-2 == right.getValue()):
-                    return left.getColor()
-            elif left:
+    def getNeighbours(self, *args, **kwargs):
+        try:
+            context = kwargs["context"]
+        except KeyError as e:
+            if isinstance(self.container, Set): 
+                context = self.container.getTiles()
+        left,right = (None,None)
+        if self in context:
+            i = context.index(self)
+            if i>0:
+                left = context[i-1]
+            if i<len(context)-1:
+                right = context[i+1]
+        log.trace(type(self), ".getNeighbours(", util.collectionToString(context, lambda item: str(item.value)), ") --> ", (left,right))
+        return (left,right)
+
+    def getColor(self, *args, **kwargs):
+        try:
+            settype = kwargs["settype"]
+        except KeyError as e:
+            settype = None
+        left,right = self.getNeighbours(*args, **kwargs)
+        if left and right:
+            if (left.getValue() == right.getValue()):
+                return self.color
+            if (left.getValue()-2 == right.getValue()):
                 return left.getColor()
-            elif right:
+        elif left:
+            if settype == Set.SETTYPE_RUN:
+                return left.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
+        elif right:
+            if settype == Set.SETTYPE_RUN:
                 return right.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
         return self.color
 
-    def getValue(self):
-        if isinstance(self.container, Set):
-            left,right = self.container.getNeighbours(self)
-            if left and right:
-                if (left.getValue() == right.getValue()):
-                    return left.getValue()
-                if (left.getValue()-2 == right.getValue()):
-                    return left.getValue()+1
-            elif left:
+    def getValue(self, *args, **kwargs):
+        try:
+            settype = kwargs["settype"]
+        except KeyError as e:
+            settype = None
+        left,right = self.getNeighbours(*args, **kwargs)
+        if left and right:
+            if (left.getValue() == right.getValue()):
                 return left.getValue()
-            elif right:
+            if (left.getValue()-2 == right.getValue()):
+                return left.getValue()+1
+        elif left:
+            if settype == Set.SETTYPE_RUN:
+                return left.getValue()+1
+            elif settype == Set.SETTYPE_GROUP:
+                return left.getValue()
+        elif right:
+            if settype == Set.SETTYPE_RUN:
+                return right.getValue()-1
+            elif settype == Set.SETTYPE_GROUP:
                 return right.getValue()
         return self.value
 
