@@ -98,6 +98,16 @@ class ModelTestMethods(unittest.TestCase):
         # attempt to add a joker to the set, it should not fail (addTile returns a position >0)
         self.assertNotEqual(set.addTile(Joker(5, GameConstants.BLACK, set)), 0)
 
+    def test_AddJokerToFullRun(self):
+        set = Set(self.root)
+        # create a sequence of tiles of the same color (black 1,2,3)
+        for v in range(1,14):
+            t = Tile(v, GameConstants.BLACK, v, set)
+            t.print()
+            self.assertEqual(set.addTile(t), v)
+        # attempt to add a joker to the set, it should fail (addTile returns a position == 0)
+        self.assertEqual(set.addTile(Joker(15, GameConstants.BLACK, set)), 0)
+
     def test_AddRunToSetWithJoker(self):
         #create an empty set
         set = Set(self.root)

@@ -6,9 +6,31 @@ import sys
 import getopt
 from console import AbstractConsole, TerminalConsole
 import threading
-from model import ServerModel
 
 BUFSIZE = 1024
+class ServerModel:
+    def __init__(self):
+        self.messages = []
+        self.messageBoxes = {}
+
+    def connectMessageBox(self, addr):
+        self.messageBoxes[addr] = []
+        for m in self.messages:
+            self.messageBoxes[addr].append(m)
+
+    def receiveMessage(self, m):
+        self.messages.append(m)
+        for addr in self.messageBoxes:
+            self.messageBoxes[addr].append(m)
+
+    def getAllMessages(self, addr):
+        buf = b""
+        for m in self.messageBoxes[addr]:
+            buf += m
+        return buf
+
+    def clearMessages(self, addr):
+        self.messageBoxes[addr] = []
 
 class Server:
     def __init__(self, host, port, console=None):
