@@ -16,9 +16,9 @@ class GameConstants:
     TILECOLORNAMES = ["black", "blue", "red", "orange"]
     MAXTILEVALUE = 13
     TILEVALUES = range(1,MAXTILEVALUE+1)
-    MODELEVENTS = ["msg_modified"]
 
 class ModelObject(Publisher):
+    EVENTS = ["msg_object_modified"]
     """
     This is the base class for all the other model classes. It implements the object 
     hierarchy and the model modification status. It extends Publisher to allow Subscriber 
@@ -26,7 +26,7 @@ class ModelObject(Publisher):
     """
 
     def __init__(self, parent=None):
-        super().__init__(GameConstants.MODELEVENTS)
+        super().__init__(ModelObject.EVENTS)
         self.__modified__ = False
         self.__children__ = []
         self.__parent__ = None
@@ -37,7 +37,7 @@ class ModelObject(Publisher):
 
     def setModified(self):
         self.__modified__ = True
-        Publisher.dispatch(self, "msg_modified", self)
+        Publisher.dispatch(self, "msg_object_modified", {"object": self} )
 
     def clearModified(self, recursive=False):
         self.__modified__ = False
@@ -55,6 +55,10 @@ class ModelObject(Publisher):
     def addChild(self, childObject):
         assert isinstance(childObject, ModelObject)
         self.__children__.append(childObject)
+        childObject.subscribe(self, "msg_object_modified", self.onMsgChildObjectModified)
+
+    def onMsgChildObjectModified(self, payload):
+        Publisher.dispatch(self, "msg_object_modified", {"object": self, "modified": payload} )
 
     def isModified(self, recursive=False):
         if not self.__modified__ and recursive:
@@ -189,6 +193,7 @@ class TileContainer(ModelObject):
             self.setTile(tile.id(), tile)
             self.lastTilePosition = fitPos
             tile.container = self
+            self.setModified()
         return fitPos
 
     def moveTile(self, tile, targetContainer):
@@ -764,6 +769,7 @@ class Game(ModelObject):
         self.board = Board(self)
         self.pile = Pile(self)
         self.maxPlayers = maxPlayers
+        self.currentPlayer = None
 
     def getType(self):
         return "Game"
@@ -778,13 +784,17 @@ class Game(ModelObject):
             self.players[name] = Player(name, self)
             self.setModified()
 
-    def start(self):
+    def start(self, player):
+        self.currentPlayer = player
         for p in self.players.values():
             for i in range(15):
                 p.pickTile()
 
     def getPlayer(self, name):
         return self.players[name]
+
+    def getCurrentPlayer(self):
+        return self.currentPlayer
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
@@ -820,23 +830,28 @@ class Game(ModelObject):
         log.trace(self.toString())
 
 
-class Model:
+class Model(Publisher):
+    EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded"]
     def __init__(self):
+        super().__init__(Model.EVENTS)
         self.currentGame = None
 
     def newGame(self, n):
         self.currentGame = Game(n)
+        self.dispatch("msg_new_game", {"game": self.currentGame})
 
-    def start(self):
-        self.currentGame.start()
+    def start(self, player):
+        self.currentGame.start(player)
 
     def loadGame(self, data):
         self.currentGame = Game(0)
         self.currentGame.load(data)
+        self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):
         if self.currentGame:
             self.currentGame.addPlayer(name)
+            self.dispatch("msg_new_player", {"game": self.currentGame, "player": self.currentGame.getPlayer(name)})
 
     def getCurrentGame(self):
         return self.currentGame
@@ -848,6 +863,10 @@ class Model:
         if self.currentGame:
             return self.currentGame.getPlayer(name)
         return None
+
+    def getCurrentPlayer(self):
+        return self.currentGame.getCurrentPlayer()
+
 
 class Test:
     def __init__(self):

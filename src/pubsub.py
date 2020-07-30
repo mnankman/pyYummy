@@ -5,7 +5,6 @@ class Subscriber:
 class Publisher:
     def __init__(self, events):
         self.events = { event : dict() for event in events }
-        self.subscribers = dict()
 
     def get_subscribers(self, event):
         return self.events[event]
@@ -19,5 +18,9 @@ class Publisher:
         del self.get_subscribers(event)[sub]
 
     def dispatch(self, event, payload):
+        if payload:
+            payload.update({"event": event})
+        else:
+            payload = {"event": event}
         for subscriber, handler in self.get_subscribers(event).items():
             handler(payload)

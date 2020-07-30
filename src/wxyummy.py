@@ -54,22 +54,22 @@ class ButtonPanel(wx.Panel):
         self.SetSizer(hbox)
 
     def onPlusClicked(self, event):
-        self.parent.OnPlus(event)
+        self.parent.onUserPlus(event)
 
     def onPlayClicked(self, event):
-        self.parent.OnPlay(event)
+        self.parent.onUserPlay(event)
         self.controller.getCurrentGame().print()
 
     def onSortClicked(self, event):
-        self.parent.OnToggleSort(event)
+        self.parent.onUserToggleSort(event)
 
 
 
 class BoardPanel(wx.Panel):    
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         super().__init__(parent=parent, size=(800,500))
         self.parent = parent
-        self.controller = controller
+        self.board = None
         self.SetBackgroundColour('#888888')
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
@@ -90,17 +90,20 @@ class BoardPanel(wx.Panel):
                     tw.Refresh()
                     xOffset = xOffset + w 
 
-    def reset(self):
+    def reset(self, board):
+        assert isinstance(board, model.Board)
+        self.board = board
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             tileSetWidget.Destroy()
 
     def refresh(self):
-        self.reset()
-        for set in self.controller.getCurrentGame().board.sets:
-            tileSetWidget = TileSetWidget(self, set)
-            w,h = TileWidget.defaultSize()
-            tileSetWidget.SetSize((w+6,h+10))
-            tileSetWidget.setPos(set.pos)
+        self.reset(self.board)
+        if board!=None:
+            for set in self.board.sets:
+                tileSetWidget = TileSetWidget(self, set)
+                w,h = TileWidget.defaultSize()
+                tileSetWidget.SetSize((w+6,h+10))
+                tileSetWidget.setPos(set.pos)
 
     def cleanUpSets(self):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
@@ -144,8 +147,7 @@ class BoardPanel(wx.Panel):
             tileSetWidget.onTileRelease(event)
         else:
             log.trace ("released on board:", (x,y), event.obj.tile.toString())
-            tile.move(self.controller.getCurrentGame().board)
-            #self.controller.getCurrentGame().print()
+            tile.move(self.board)
             tileSetWidget = TileSetWidget(self, tile.container)
             w,h = event.obj.GetSize()
             tileSetWidget.SetSize((w+6,h+10))
@@ -169,12 +171,11 @@ class GamePanel(wx.Panel):
         
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        self.boardPanel = BoardPanel(self, self.controller)
+        self.boardPanel = BoardPanel(self)
         self.platePanel = PlatePanel(self)
         vbox.Add(self.boardPanel, 1, wx.EXPAND)
         vbox.Add(self.platePanel, 1, wx.EXPAND)
 
-        self.newGame()
         self.SetSizer(vbox)
 
     def getTileWidgets(self):
@@ -190,26 +191,29 @@ class GamePanel(wx.Panel):
         self.__tileWidgets__ = []
 
     def getPlateValues(self):
-        if self.sortMethod==0:
-            return self.player.plate.getTiles().values()
-        elif self.sortMethod==1:
-            return self.player.plate.getTilesSortedByValue()
-        else:
-            return self.player.plate.getTilesGroupedByColor()
+        if self.controller.getCurrentPlayer():
+            plate = self.controller.getCurrentPlayer().plate
+            if self.sortMethod==0:
+                return plate.getTiles().values()
+            elif self.sortMethod==1:
+                return plate.getTilesSortedByValue()
+            else:
+                return plate.getTilesGroupedByColor()
 
     def refreshTiles(self):
-        c = 0
-        tx, ty = (0, 500)
-        for t in self.getPlateValues():
-            tileWidget = self.findTileWidgetById(t.id())
-            if not tileWidget: 
-                tileWidget = TileWidget(self, t)
-                self.addTileWidget(tileWidget)
-                tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
-                tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
-            tileWidget.Move((tx,ty))
-            tw,th = tileWidget.GetSize()
-            tx = tx+tw+1
+        if self.controller.getCurrentPlayer():
+            c = 0
+            tx, ty = (0, 500)
+            for t in self.getPlateValues():
+                tileWidget = self.findTileWidgetById(t.id())
+                if not tileWidget: 
+                    tileWidget = TileWidget(self, t)
+                    self.addTileWidget(tileWidget)
+                    tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
+                    tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
+                tileWidget.Move((tx,ty))
+                tw,th = tileWidget.GetSize()
+                tx = tx+tw+1
 
     def findTileWidgetById(self, tId):
         for c in self.GetChildren():
@@ -218,41 +222,24 @@ class GamePanel(wx.Panel):
                     return c
         return None
             
-    def newGame(self):
-        self.controller.newGame(2)
-        self.controller.addPlayer("player1")
-        self.player = self.controller.getPlayer("player1")
-        self.controller.start()
-        self.boardPanel.reset()
+    def newGame(self, game):
+        self.game = game
+        self.boardPanel.reset(game.board)
         self.resetTileWidgets()
         self.refreshTiles()
 
-    def saveGame(self):
-        self.controller.saveGame()
-
     def loadGame(self):
         self.controller.loadGame()
-        self.player = self.controller.getPlayer("player1")
         self.refreshTiles()
         self.boardPanel.refresh()
 
     def getGame(self):
         return self.game
 
-    def plus(self):
-        if self.player:
-            self.player.pickTile()
-            self.controller.getCurrentGame().board.cleanUp(False)
-            self.refreshTiles()
-            self.boardPanel.cleanUpSets()
-            self.Refresh()
-
-    def play(self):
-        if self.player:
-            self.player.commitMoves()
-            self.refreshTiles()
-            self.boardPanel.cleanUpSets()
-            self.Refresh()
+    def refresh(self):
+        self.refreshTiles()
+        self.boardPanel.cleanUpSets()
+        self.Refresh()
 
     def toggleSort(self):
         if self.sortMethod<2:
@@ -271,6 +258,9 @@ class MainWindow(wx.Frame):
         self.SetIcon(icon)
 
         self.controller = Controller()
+        self.controller.model.subscribe(self, "msg_new_game", self.onMsgNewGame)
+        self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
+        self.controller.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
 
         self.buttonPanel = ButtonPanel(self, self.controller)
         self.gamePanel = GamePanel(self, self.controller)
@@ -299,40 +289,67 @@ class MainWindow(wx.Frame):
         menuBar.Append(debugMenu, "&Debug")
         self.SetMenuBar(menuBar)
 
-        self.Bind(event=wx.EVT_MENU, handler=self.OnNewGame, id=ID_NEWGAME)
-        self.Bind(event=wx.EVT_MENU, handler=self.OnSaveGame, id=ID_SAVEGAME)
-        self.Bind(event=wx.EVT_MENU, handler=self.OnLoadGame, id=ID_LOADGAME)
-        self.Bind(event=wx.EVT_MENU, handler=self.OnExit, id=ID_EXIT)
-        self.Bind(event=wx.EVT_MENU, handler=self.OnShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
+        self.Bind(event=wx.EVT_MENU, handler=self.onUserNewGame, id=ID_NEWGAME)
+        self.Bind(event=wx.EVT_MENU, handler=self.onUserSaveGame, id=ID_SAVEGAME)
+        self.Bind(event=wx.EVT_MENU, handler=self.onUserLoadGame, id=ID_LOADGAME)
+        self.Bind(event=wx.EVT_MENU, handler=self.onUserExit, id=ID_EXIT)
+        self.Bind(event=wx.EVT_MENU, handler=self.onUserShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
 
-    def onMessageReceived(self, payload):
-        self.chatPanel.addMessage(payload[1])
+    def onMsgNewGame(self, payload):
+        log.trace(type(self),"received",payload)
+        game = payload["game"]
+        if game:
+            game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+            self.gamePanel.newGame(game)
 
-    def OnExit(self, e):
+    def onMsgNewPlayer(self, payload):
+        log.trace(type(self),"received",payload)
+        player = payload["player"]
+        if player:
+            player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
+            self.controller.start(player)
+
+    def onMsgGameLoaded(self, payload):
+        log.trace(type(self),"received",payload)
+        game = payload["game"]
+        if game:
+            game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+            self.gamePanel.loadGame()
+
+    def onMsgGameModified(self, payload):
+        log.trace(type(self),"received",payload)
+        self.gamePanel.refresh()
+
+    def onMsgPlayerModified(self, payload):
+        log.trace(type(self),"received",payload)
+        self.gamePanel.refresh()
+
+    def onUserExit(self, e):
         #answer = self.exitDialog.ShowModal()
         #if answer == wx.ID_YES:
         if True:
             self.Close(True) 
 
-    def OnNewGame(self, e):
-        self.gamePanel.newGame()
+    def onUserNewGame(self, e):
+        self.controller.newGame(2)
+        self.controller.addPlayer("player1")
 
-    def OnSaveGame(self, e):
-        self.gamePanel.saveGame()
+    def onUserSaveGame(self, e):
+        self.controller.saveGame()
 
-    def OnLoadGame(self, e):
-        self.gamePanel.loadGame()
+    def onUserLoadGame(self, e):
+        self.controller.loadGame()
 
-    def OnShowInspectionTool(self, e):
+    def onUserShowInspectionTool(self, e):
         wx.lib.inspection.InspectionTool().Show()
 
-    def OnPlus(self, e):
-        self.gamePanel.plus()
+    def onUserPlus(self, e):
+        self.controller.pick()
 
-    def OnPlay(self, e):
-        self.gamePanel.play()
+    def onUserPlay(self, e):
+        self.controller.commit()
 
-    def OnToggleSort(self, e):
+    def onUserToggleSort(self, e):
         self.gamePanel.toggleSort()
 
 

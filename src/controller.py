@@ -13,8 +13,8 @@ class Controller:
     def newGame(self, n):
         self.model.newGame(n)
 
-    def start(self):
-        self.model.start()
+    def start(self, player):
+        self.model.start(player)
 
     def saveGame(self):
         self.saved = self.model.getCurrentGame().saveToDict()
@@ -31,6 +31,20 @@ class Controller:
     def getCurrentGame(self):
         return self.model.getCurrentGame()
 
+    def getCurrentPlayer(self):
+        return self.model.getCurrentPlayer()
+
     def getPlayer(self, name):
         return self.model.getPlayer(name)
+
+    def pick(self):
+        player = self.getCurrentPlayer()
+        if player:
+            player.pickTile()
+            self.getCurrentGame().board.cleanUp(False)
+
+    def commit(self):
+        player = self.getCurrentPlayer()
+        if player:
+            player.commitMoves()
 
