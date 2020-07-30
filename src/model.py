@@ -705,16 +705,6 @@ class Plate(TileContainer):
     def getType(self):
         return "Plate"
 
-    def getData(self):
-        return super().getData({
-            "player": self.player.name
-        })
-
-    def load(self, data):
-        super().load(data)
-        if self.isValidData(data):
-            self.player = self.getDataAttribute(data, "player")
-
     def moveTile(self, tile, targetContainer):
         if TileContainer.moveTile(self, tile, targetContainer):
             tile.rememberPlate(self)
@@ -837,6 +827,8 @@ class Model(Publisher):
         self.currentGame = None
 
     def newGame(self, n):
+        if self.currentGame:
+            del self.currentGame
         self.currentGame = Game(n)
         self.dispatch("msg_new_game", {"game": self.currentGame})
 
@@ -844,6 +836,8 @@ class Model(Publisher):
         self.currentGame.start(player)
 
     def loadGame(self, data):
+        if self.currentGame:
+            del self.currentGame
         self.currentGame = Game(0)
         self.currentGame.load(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})

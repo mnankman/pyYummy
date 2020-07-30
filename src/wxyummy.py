@@ -98,7 +98,7 @@ class BoardPanel(wx.Panel):
 
     def refresh(self):
         self.reset(self.board)
-        if board!=None:
+        if self.board!=None:
             for set in self.board.sets:
                 tileSetWidget = TileSetWidget(self, set)
                 w,h = TileWidget.defaultSize()
@@ -229,7 +229,6 @@ class GamePanel(wx.Panel):
         self.refreshTiles()
 
     def loadGame(self):
-        self.controller.loadGame()
         self.refreshTiles()
         self.boardPanel.refresh()
 
