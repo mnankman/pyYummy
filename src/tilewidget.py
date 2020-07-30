@@ -4,6 +4,7 @@ import model
 
 #COLORS = ["#000000", "#3300CC", "#FF3300", "#FF6600"]
 COLORS = ["#333333", "#000066", "#CC0033", "#FF9933"]
+RESOURCES="src/resource"
 
 class TileWidget(DragablePanel):
     yummyIcon = None
@@ -11,7 +12,7 @@ class TileWidget(DragablePanel):
         DragablePanel.__init__(self, parent, size=(36, 50), style=wx.BORDER_RAISED|wx.CLIP_CHILDREN)
 
         if not TileWidget.yummyIcon:
-            TileWidget.yummyIcon = wx.Bitmap("yummy-icon-28-white.png")
+            TileWidget.yummyIcon = wx.Bitmap(RESOURCES+"/yummy-icon-28-white.png")
 
         self.tile = tile
 

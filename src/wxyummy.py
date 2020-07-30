@@ -12,6 +12,8 @@ from log import Log
 log = Log()
 log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
+RESOURCES="src/resource"
+
 ID_NEWGAME=101
 ID_CONNECT=104
 ID_EXIT=200
@@ -24,8 +26,8 @@ class ButtonPanel(wx.Panel):
         self.parent = parent
         self.controller = controller
 
-        self.btnFacePlay = wx.Bitmap("yummy-btnface-play-28-white.png")
-        self.btnFacePlus = wx.Bitmap("yummy-btnface-plus-28-white.png")
+        self.btnFacePlay = wx.Bitmap(RESOURCES+"/yummy-btnface-play-28-white.png")
+        self.btnFacePlus = wx.Bitmap(RESOURCES+"/yummy-btnface-plus-28-white.png")
 
         btnPlus = wx.Button(self, -1, "", size=(40, 40), style=wx.NO_BORDER)
         btnPlus.SetBackgroundColour("#333333")
@@ -244,7 +246,7 @@ class MainWindow(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Yummy')
 
-        iconFile = "yummy-icon-28-white.png"
+        iconFile = RESOURCES+"/yummy-icon-28-white.png"
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
