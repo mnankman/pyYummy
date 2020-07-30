@@ -15,6 +15,8 @@ log.setVerbosity(Log.VERBOSITY_VERBOSE)
 RESOURCES="src/resource"
 
 ID_NEWGAME=101
+ID_SAVEGAME=102
+ID_LOADGAME=103
 ID_CONNECT=104
 ID_EXIT=200
 ID_SENDMESSAGE=500
@@ -89,13 +91,21 @@ class BoardPanel(wx.Panel):
                     xOffset = xOffset + w 
 
     def reset(self):
-        for sp in self.getObjectsByType(TileSetWidget):
-            sp.Destroy()
+        for tileSetWidget in self.getObjectsByType(TileSetWidget):
+            tileSetWidget.Destroy()
+
+    def refresh(self):
+        self.reset()
+        for set in self.controller.getCurrentGame().board.sets:
+            tileSetWidget = TileSetWidget(self, set)
+            w,h = TileWidget.defaultSize()
+            tileSetWidget.SetSize((w+6,h+10))
+            tileSetWidget.setPos(set.pos)
 
     def cleanUpSets(self):
-        for sp in self.getObjectsByType(TileSetWidget):
-            if sp.set.isEmpty():
-                sp.Destroy()
+        for tileSetWidget in self.getObjectsByType(TileSetWidget):
+            if tileSetWidget.set.isEmpty():
+                tileSetWidget.Destroy()
 
     def getObjectsByType(self, type):
         result = []
@@ -135,11 +145,11 @@ class BoardPanel(wx.Panel):
         else:
             log.trace ("released on board:", (x,y), event.obj.tile.toString())
             tile.move(self.controller.getCurrentGame().board)
-            self.controller.getCurrentGame().print()
+            #self.controller.getCurrentGame().print()
             tileSetWidget = TileSetWidget(self, tile.container)
             w,h = event.obj.GetSize()
             tileSetWidget.SetSize((w+6,h+10))
-            tileSetWidget.Move((x-3,y-4))
+            tileSetWidget.setPos((x-3,y-4))
         event.obj.Raise()
         self.Refresh()
 
@@ -212,9 +222,19 @@ class GamePanel(wx.Panel):
         self.controller.newGame(2)
         self.controller.addPlayer("player1")
         self.player = self.controller.getPlayer("player1")
+        self.controller.start()
         self.boardPanel.reset()
         self.resetTileWidgets()
         self.refreshTiles()
+
+    def saveGame(self):
+        self.controller.saveGame()
+
+    def loadGame(self):
+        self.controller.loadGame()
+        self.player = self.controller.getPlayer("player1")
+        self.refreshTiles()
+        self.boardPanel.refresh()
 
     def getGame(self):
         return self.game
@@ -271,13 +291,17 @@ class MainWindow(wx.Frame):
         debugMenu = wx.Menu()
         debugMenu.Append(ID_SHOWINSPECTIONTOOL, "&Inspection tool", "Show the WX Inspection Tool")
         fileMenu = wx.Menu()
-        fileMenu.Append(ID_NEWGAME, "&Start new game", "Start a new game of Yummy")
+        fileMenu.Append(ID_NEWGAME, "Start &new game", "Start a new game of Yummy")
+        fileMenu.Append(ID_SAVEGAME, "&Save game", "Save this game")
+        fileMenu.Append(ID_LOADGAME, "&Load game", "Load game")
         fileMenu.Append(ID_EXIT, "E&xit", "Exit")
         menuBar.Append(fileMenu, "&File")
         menuBar.Append(debugMenu, "&Debug")
         self.SetMenuBar(menuBar)
 
         self.Bind(event=wx.EVT_MENU, handler=self.OnNewGame, id=ID_NEWGAME)
+        self.Bind(event=wx.EVT_MENU, handler=self.OnSaveGame, id=ID_SAVEGAME)
+        self.Bind(event=wx.EVT_MENU, handler=self.OnLoadGame, id=ID_LOADGAME)
         self.Bind(event=wx.EVT_MENU, handler=self.OnExit, id=ID_EXIT)
         self.Bind(event=wx.EVT_MENU, handler=self.OnShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
 
@@ -292,6 +316,12 @@ class MainWindow(wx.Frame):
 
     def OnNewGame(self, e):
         self.gamePanel.newGame()
+
+    def OnSaveGame(self, e):
+        self.gamePanel.saveGame()
+
+    def OnLoadGame(self, e):
+        self.gamePanel.loadGame()
 
     def OnShowInspectionTool(self, e):
         wx.lib.inspection.InspectionTool().Show()

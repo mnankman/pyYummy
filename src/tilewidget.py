@@ -8,8 +8,11 @@ RESOURCES="src/resource"
 
 class TileWidget(DragablePanel):
     yummyIcon = None
+    def defaultSize():
+        return (36,50)
+
     def __init__(self, parent, tile):
-        DragablePanel.__init__(self, parent, size=(36, 50), style=wx.BORDER_RAISED|wx.CLIP_CHILDREN)
+        DragablePanel.__init__(self, parent, size=TileWidget.defaultSize(), style=wx.BORDER_RAISED|wx.CLIP_CHILDREN)
 
         if not TileWidget.yummyIcon:
             TileWidget.yummyIcon = wx.Bitmap(RESOURCES+"/yummy-icon-28-white.png")

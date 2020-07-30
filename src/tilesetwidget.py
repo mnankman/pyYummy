@@ -1,9 +1,9 @@
 import wx
-from dragable import DragablePanel
+import dragable
 import model
 import util
 
-class TileSetWidget(DragablePanel):  
+class TileSetWidget(dragable.DragablePanel):  
     normalPenColor = 'Black'
     highlightPenColor = 'White'
     modifiedPenColor = '#008800'
@@ -15,6 +15,11 @@ class TileSetWidget(DragablePanel):
         self.highlight = False
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
+        self.Bind(dragable.EVT_DRAGABLE_RELEASE, self.onDragRelease)
+
+    def onDragRelease(self, event):
+        x,y = event.pos
+        self.setPos((x,y))
 
     def onPaint(self, event):
         event.Skip()
@@ -39,6 +44,11 @@ class TileSetWidget(DragablePanel):
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         w,h = self.GetClientSize()
         dc.DrawRoundedRectangle(0,0,w,h,6)
+    
+    def setPos(self, pos):
+        self.Move(pos)
+        if self.set and isinstance(self.set, model.Set):
+            self.set.setPos(pos)
 
     def onTileHover(self, event):
         if util.rectsOverlap(event.obj.GetRect(), self.GetRect()) and self.set.tileFitPosition(event.obj.tile)>0:
