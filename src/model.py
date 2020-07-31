@@ -188,7 +188,7 @@ class TileContainer(ModelObject):
         not be added to the container. 
         """
         fitPos = self.tileFitPosition(tile)
-        log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
+        #log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
             self.setTile(tile.id(), tile)
             self.lastTilePosition = fitPos
@@ -766,7 +766,8 @@ class Game(ModelObject):
 
     def getData(self):
         return super().getData({
-            "maxPlayers": self.maxPlayers
+            "maxPlayers": self.maxPlayers,
+            "currentPlayer": self.currentPlayer
         })
 
     def addPlayer(self, name):
@@ -775,20 +776,24 @@ class Game(ModelObject):
             self.setModified()
 
     def start(self, player):
-        self.currentPlayer = player
+        self.currentPlayer = player.name
         for p in self.players.values():
             for i in range(15):
                 p.pickTile()
 
     def getPlayer(self, name):
-        return self.players[name]
+        if name and name in self.players:
+            return self.players[name]
+        return None
 
     def getCurrentPlayer(self):
-        return self.currentPlayer
+        if self.currentPlayer:
+            return self.getPlayer(self.currentPlayer)
+        return None
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
-        if player.getParent() == self:
+        if player.name == self.currentPlayer and player.getParent() == self:
             # clean the board with validation
             self.board.cleanUp(True)
             # recursively clear the modified flag of all ModelObject instances under Game
@@ -797,6 +802,7 @@ class Game(ModelObject):
     def load(self, data):
         if self.isValidData(data):
             self.maxPlayers = self.getDataAttribute(data, "maxPlayers")
+            self.currentPlayer = self.getDataAttribute(data, "currentPlayer")
             elements = self.getDataElements(data)
             if elements:
                 for e in elements:

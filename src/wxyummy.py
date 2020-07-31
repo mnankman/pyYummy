@@ -34,18 +34,18 @@ class ButtonPanel(wx.Panel):
         btnPlus = wx.Button(self, -1, "", size=(40, 40), style=wx.NO_BORDER)
         btnPlus.SetBackgroundColour("#333333")
         btnPlus.SetBitmap(self.btnFacePlus)
-        btnPlus.Bind(wx.EVT_BUTTON, self.onPlusClicked)
+        btnPlus.Bind(wx.EVT_BUTTON, self.onUserPlus)
 
         btnPlay = wx.Button(self, -1, "", size=(40, 40), style=wx.NO_BORDER)
         btnPlay.SetBackgroundColour("#333333")
         btnPlay.SetBitmap(self.btnFacePlay)
-        btnPlay.Bind(wx.EVT_BUTTON, self.onPlayClicked)
+        btnPlay.Bind(wx.EVT_BUTTON, self.onUserPlay)
 
         btnSort = wx.Button(self, -1, "123", size=(40, 40), style=wx.NO_BORDER)
         btnSort.SetBackgroundColour("#333333")
         btnSort.SetForegroundColour('White')
         #btnSort.SetBitmap(self.btnFaceSort)
-        btnSort.Bind(wx.EVT_BUTTON, self.onSortClicked)
+        btnSort.Bind(wx.EVT_BUTTON, self.onUserToggleSort)
 
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         hbox.Add(btnPlus, 0, wx.ALL, 2)
@@ -53,14 +53,14 @@ class ButtonPanel(wx.Panel):
         hbox.Add(btnSort, 0, wx.ALL, 2)
         self.SetSizer(hbox)
 
-    def onPlusClicked(self, event):
-        self.parent.onUserPlus(event)
+    def onUserPlus(self, e):
+        self.controller.pick()
 
-    def onPlayClicked(self, event):
-        self.parent.onUserPlay(event)
+    def onUserPlay(self, e):
+        self.controller.commit()
         self.controller.getCurrentGame().print()
 
-    def onSortClicked(self, event):
+    def onUserToggleSort(self, event):
         self.parent.onUserToggleSort(event)
 
 
@@ -161,12 +161,11 @@ class PlatePanel(wx.Panel):
         self.SetBackgroundColour('#CCCCCC')
 
 class GamePanel(wx.Panel):    
-    def __init__(self, parent, controller):
+    def __init__(self, parent):
         super().__init__(parent=parent, size=(800,600))
         self.SetBackgroundColour('#CCCCCC')
         self.__tileWidgets__ = None
         self.game = None
-        self.controller = controller
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -191,8 +190,8 @@ class GamePanel(wx.Panel):
         self.__tileWidgets__ = []
 
     def getPlateValues(self):
-        if self.controller.getCurrentPlayer():
-            plate = self.controller.getCurrentPlayer().plate
+        if self.game.getCurrentPlayer():
+            plate = self.game.getCurrentPlayer().plate
             if self.sortMethod==0:
                 return plate.getTiles().values()
             elif self.sortMethod==1:
@@ -201,7 +200,7 @@ class GamePanel(wx.Panel):
                 return plate.getTilesGroupedByColor()
 
     def refreshTiles(self):
-        if self.controller.getCurrentPlayer():
+        if self.game.getCurrentPlayer():
             c = 0
             tx, ty = (0, 500)
             for t in self.getPlateValues():
@@ -228,7 +227,8 @@ class GamePanel(wx.Panel):
         self.resetTileWidgets()
         self.refreshTiles()
 
-    def loadGame(self):
+    def loadGame(self, game):
+        self.game = game
         self.refreshTiles()
         self.boardPanel.refresh()
 
@@ -262,7 +262,7 @@ class MainWindow(wx.Frame):
         self.controller.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
 
         self.buttonPanel = ButtonPanel(self, self.controller)
-        self.gamePanel = GamePanel(self, self.controller)
+        self.gamePanel = GamePanel(self)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(self.buttonPanel)
@@ -313,7 +313,7 @@ class MainWindow(wx.Frame):
         game = payload["game"]
         if game:
             game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-            self.gamePanel.loadGame()
+            self.gamePanel.loadGame(game)
 
     def onMsgGameModified(self, payload):
         log.trace(type(self),"received",payload)
