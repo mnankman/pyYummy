@@ -16,6 +16,7 @@ class TileSetWidget(dragable.DragablePanel):
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
         self.Bind(dragable.EVT_DRAGABLE_RELEASE, self.onDragRelease)
+        self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
 
     def onDragRelease(self, event):
         x,y = event.pos
@@ -50,6 +51,9 @@ class TileSetWidget(dragable.DragablePanel):
         if self.set and isinstance(self.set, model.Set):
             self.set.setPos(pos)
 
+    def update(self):
+        self.Move(self.set.pos)
+
     def onTileHover(self, event):
         if util.rectsOverlap(event.obj.GetRect(), self.GetRect()) and self.set.tileFitPosition(event.obj.tile)>0:
             self.highlight = True
@@ -65,4 +69,6 @@ class TileSetWidget(dragable.DragablePanel):
             self.highlight = False
             self.Refresh()
 
+    def onMsgSetModified(self, payload):
+        self.update()
 

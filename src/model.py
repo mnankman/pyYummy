@@ -18,7 +18,7 @@ class GameConstants:
     TILEVALUES = range(1,MAXTILEVALUE+1)
 
 class ModelObject(Publisher):
-    EVENTS = ["msg_object_modified"]
+    EVENTS = ["msg_object_modified", "msg_new_child"]
     """
     This is the base class for all the other model classes. It implements the object 
     hierarchy and the model modification status. It extends Publisher to allow Subscriber 
@@ -50,12 +50,15 @@ class ModelObject(Publisher):
         return self.__parent__
 
     def getChildren(self):
+        if not self.__children__: self.__children = []
         return self.__children__
 
     def addChild(self, childObject):
         assert isinstance(childObject, ModelObject)
-        self.__children__.append(childObject)
+        self.getChildren().append(childObject)
         childObject.subscribe(self, "msg_object_modified", self.onMsgChildObjectModified)
+        self.setModified()
+        Publisher.dispatch(self, "msg_new_child", {"object": self, "child": childObject})
 
     def onMsgChildObjectModified(self, payload):
         Publisher.dispatch(self, "msg_object_modified", {"object": self, "modified": payload} )
@@ -146,6 +149,7 @@ class TileContainer(ModelObject):
         return data
 
     def getTiles(self):
+        if not self.__tiles__: self.__tiles__ = {}
         return self.__tiles__
 
     def copyTiles(self):
@@ -279,7 +283,7 @@ class Set(TileContainer):
         SETTYPE_INVALID: "Invalid"
     }
     def __init__(self, parent, pos=None):
-        TileContainer.__init__(self, parent)
+        super().__init__(parent)
         self.order = []
         self.type = None
         self.pos = pos  #this is a tuple (x,y) and is the relative position of the set on the board
@@ -519,7 +523,7 @@ class Tile(ModelObject):
 
 class Joker(Tile):
     def __init__(self, id, color, container):
-        Tile.__init__(self, id, color, 0, container)
+        super().__init__(id, color, 0, container)
 
     def getNeighbours(self, *args, **kwargs):
         context = []
@@ -595,8 +599,8 @@ class Joker(Tile):
 
 class Pile(TileContainer):
     def __init__(self, parent):
+        super().__init__(parent)
         self.nextId = 0
-        TileContainer.__init__(self, parent)
         for color in GameConstants.TILECOLORS:
             for value in GameConstants.TILEVALUES:
                 for i in range(2):
@@ -637,7 +641,7 @@ class Pile(TileContainer):
 
 class Board(TileContainer):
     def __init__(self, parent):
-        TileContainer.__init__(self, parent)
+        super().__init__(parent)
         self.sets = []
 
     def getType(self):
@@ -699,8 +703,8 @@ class Board(TileContainer):
 
 class Plate(TileContainer):
     def __init__(self, player):
+        super().__init__(player)
         self.player = player
-        TileContainer.__init__(self, self.player)
 
     def getType(self):
         return "Plate"
@@ -829,8 +833,8 @@ class Game(ModelObject):
 class Model(Publisher):
     EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded"]
     def __init__(self):
-        super().__init__(Model.EVENTS)
         self.currentGame = None
+        super().__init__(Model.EVENTS)
 
     def newGame(self, n):
         if self.currentGame:

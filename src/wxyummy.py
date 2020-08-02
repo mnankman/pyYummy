@@ -1,4 +1,7 @@
 import wx
+from wxasync import WxAsyncApp
+import asyncio
+
 import wx.lib.inspection
 
 from tilewidget import TileWidget
@@ -75,6 +78,14 @@ class BoardPanel(wx.Panel):
         self.SetSizer(self.sizer)
         self.Bind(wx.EVT_PAINT,self.onPaint)
 
+    def getObjectsByType(self, type):
+        result = []
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, type):
+                result.append(c)
+        return result
+
     def onPaint(self, event):
         event.Skip()
         tileSetWidgets = self.getObjectsByType(TileSetWidget)
@@ -91,12 +102,21 @@ class BoardPanel(wx.Panel):
                     xOffset = xOffset + w 
 
     def reset(self, board):
+        """
+        destroys all instances of TileSetWidget that are currently being displayed        
+        """
         assert isinstance(board, model.Board)
-        self.board = board
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             tileSetWidget.Destroy()
+        self.board = board
+        self.board.subscribe(self, "msg_new_child", self.onMsgBoardNewChild)
 
-    def refresh(self):
+    def rebuild(self):
+        """
+        Rebuilds the visualisation of the sets (model.Set) that on the board (model.Board).
+        First all instances of TileSetWidget are destroyed (by calling self.reset()).
+        After that, a new TileSetWidget is created for each instance of model.Set on the board
+        """
         self.reset(self.board)
         if self.board!=None:
             for set in self.board.sets:
@@ -110,50 +130,51 @@ class BoardPanel(wx.Panel):
             if tileSetWidget.set.isEmpty():
                 tileSetWidget.Destroy()
 
-    def getObjectsByType(self, type):
-        result = []
+    def findTileSetWidgetByOverlap(self, rect):
         children = self.GetChildren()
-        for c in children:
-            if isinstance(c, type):
-                result.append(c)
+        result = None
+        for tileSetWidget in self.getObjectsByType(TileSetWidget):
+            if util.rectsOverlap(rect,tileSetWidget.GetRect()):
+                result = tileSetWidget
+                break
         return result
 
-    def findTileSetWidget(self, rect):
-        children = self.GetChildren()
-        setPnl = None
-        for c in children:
-            if isinstance(c, TileSetWidget):
-                if util.rectsOverlap(rect,c.GetRect()):
-                    setPnl = c
-                    break
-        return setPnl
-
     def triggerTileSetWidgets(self, event):
-        children = self.GetChildren()
-        for c in children:
-            if isinstance(c, TileSetWidget):
-                c.onTileHover(event)
+        for tileSetWidget in self.getObjectsByType(TileSetWidget):
+            tileSetWidget.onTileHover(event)
 
     def onTileHover(self, event):
         pos = event.pos
         self.triggerTileSetWidgets(event)
 
+    def addTileSetWidget(self, set, pos=None):
+        assert isinstance (set, model.Set)
+        tileSetWidget = TileSetWidget(self, set)
+        w,h = TileWidget.defaultSize()
+        tileSetWidget.SetSize((w+6,h+10))
+        tileSetWidget.setPos(pos if pos else set.pos)
+
     def onTileRelease(self, event):
         log.trace(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
         x,y = event.pos
         tile = event.obj.tile
-        tileSetWidget = self.findTileSetWidget(event.obj.GetRect())
+        tileSetWidget = self.findTileSetWidgetByOverlap(event.obj.GetRect())
         if tileSetWidget:
             tileSetWidget.onTileRelease(event)
         else:
             log.trace ("released on board:", (x,y), event.obj.tile.toString())
-            tile.move(self.board)
-            tileSetWidget = TileSetWidget(self, tile.container)
-            w,h = event.obj.GetSize()
-            tileSetWidget.SetSize((w+6,h+10))
-            tileSetWidget.setPos((x-3,y-4))
+            #move the tile to the board, this will result in a new instance of model.Set containing the tile:
+            tile.move(self.board) 
+            #tile.container is an instance of model.Set, set the position on the board:
+            tile.container.setPos((x-3,y-4))
         event.obj.Raise()
         self.Refresh()
+
+    def onMsgBoardNewChild(self, payload):
+        log.trace(type(self),"received",payload)
+        if payload["object"] == self.board and payload["child"] != None:
+            self.addTileSetWidget(payload["child"])
+
 
 class PlatePanel(wx.Panel):    
     def __init__(self, parent):
@@ -221,16 +242,11 @@ class GamePanel(wx.Panel):
                     return c
         return None
             
-    def newGame(self, game):
+    def reset(self, game):
         self.game = game
         self.boardPanel.reset(game.board)
         self.resetTileWidgets()
         self.refreshTiles()
-
-    def loadGame(self, game):
-        self.game = game
-        self.refreshTiles()
-        self.boardPanel.refresh()
 
     def getGame(self):
         return self.game
@@ -299,7 +315,7 @@ class MainWindow(wx.Frame):
         game = payload["game"]
         if game:
             game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-            self.gamePanel.newGame(game)
+            self.gamePanel.reset(game)
 
     def onMsgNewPlayer(self, payload):
         log.trace(type(self),"received",payload)
@@ -313,7 +329,7 @@ class MainWindow(wx.Frame):
         game = payload["game"]
         if game:
             game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-            self.gamePanel.loadGame(game)
+            self.gamePanel.reset(game)
 
     def onMsgGameModified(self, payload):
         log.trace(type(self),"received",payload)
@@ -352,8 +368,15 @@ class MainWindow(wx.Frame):
         self.gamePanel.toggleSort()
 
 
-if __name__ == '__main__':
-    app = wx.App()
+def start():
+    app = WxAsyncApp()
     w = MainWindow()
-    app.MainLoop()
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(app.MainLoop())
+    finally:
+        loop.stop()
+        loop.close()
 
+if __name__ == '__main__':
+    start()
