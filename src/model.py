@@ -874,52 +874,6 @@ class Model(Publisher):
         return self.currentGame.getCurrentPlayer()
 
 
-class Test:
-    def __init__(self):
-        pass
 
-    def runAllTests(self):
-        self.runGameTest()
-        self.runPlayerTest()
-
-    def runGameTest(self):
-        game = Game(4)
-        game.log.trace()
-
-        tc = game.board
-        for v in range(1,4):
-            t = game.pile.findTile(v, GameConstants.BLACK)
-            t.log.trace()
-            t.move(tc)
-            tc = t.container
-        game.log.trace()
-
-    def runPlayerTest(self):
-        game = Game(2)
-        game.addPlayer("Joe")
-        game.print()
-
-        joe = game.getPlayer("Joe")
-        joe.pickTile()
-        joe.print()
-
-        for tId in joe.plate.getTiles():
-            t = joe.plate.getTile(tId)
-            log.trace("\nmoving to board:", t.toString())
-            t.move(game.board)
-            game.print()
-            log.trace("\nboard.cleanUp:")
-            game.board.cleanUp()
-            game.print()
-            log.trace("\nmoving back to plate:", t.toString())
-            t.move(joe.plate)
-            game.board.cleanUp()
-            game.print()
-            break
-
-if __name__ == "__main__":
-    test = Test()
-    #test.runAllTests()
-    test.runPlayerTest()
 
    

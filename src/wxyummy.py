@@ -130,10 +130,28 @@ class MainWindow(wx.Frame):
         self.controller.addPlayer("player1")
 
     def onUserSaveGame(self, e):
-        self.controller.saveGame()
+        # Create open file dialog
+        dlg = wx.FileDialog(self, "Save", "", "", 
+            "Yummy files (*.yummy)|*.yummy", 
+            wx.FD_OPEN)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        path = dlg.GetPath()
+        dlg.Destroy()
+
+        self.controller.saveGame(path)
 
     def onUserLoadGame(self, e):
-        self.controller.loadGame()
+        # Create open file dialog
+        dlg = wx.FileDialog(self, "Open", "", "", 
+            "Yummy files (*.yummy)|*.yummy", 
+            wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        path = dlg.GetPath()
+        dlg.Destroy()
+       
+        self.controller.loadGame(path)
 
     def onUserShowInspectionTool(self, e):
         wx.lib.inspection.InspectionTool().Show()

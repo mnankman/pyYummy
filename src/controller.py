@@ -1,4 +1,5 @@
 from model import *
+import json
 
 class Controller:
     def __init__(self):
@@ -16,13 +17,19 @@ class Controller:
     def start(self, player):
         self.model.start(player)
 
-    def saveGame(self):
-        self.saved = self.model.getCurrentGame().saveToDict()
-        log.trace("game saved to:\n", self.saved)
+    def saveGame(self, path):
+        self.saved = json.dumps(self.model.getCurrentGame().saveToDict())
+        f=open(path,"w")
+        f.write(self.saved)
+        f.close()
+        log.trace("game saved to:", path)
 
-    def loadGame(self):
+    def loadGame(self, path):
+        f=open(path,"r")
+        self.saved = f.readline()
+        f.close()
         if self.saved:
-            self.model.loadGame(self.saved)
+            self.model.loadGame(json.loads(self.saved))
             self.getCurrentGame().print()
 
     def addPlayer(self, name):
