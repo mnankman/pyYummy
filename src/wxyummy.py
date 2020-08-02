@@ -106,19 +106,19 @@ class BoardPanel(wx.Panel):
         destroys all instances of TileSetWidget that are currently being displayed        
         """
         assert isinstance(board, model.Board)
-        for tileSetWidget in self.getObjectsByType(TileSetWidget):
-            tileSetWidget.Destroy()
         self.board = board
         self.board.subscribe(self, "msg_new_child", self.onMsgBoardNewChild)
+        self.rebuild()
 
     def rebuild(self):
         """
         Rebuilds the visualisation of the sets (model.Set) that on the board (model.Board).
-        First all instances of TileSetWidget are destroyed (by calling self.reset()).
+        First all instances of TileSetWidget are destroyed.
         After that, a new TileSetWidget is created for each instance of model.Set on the board
         """
-        self.reset(self.board)
         if self.board!=None:
+            for tileSetWidget in self.getObjectsByType(TileSetWidget):
+                tileSetWidget.Destroy()
             for set in self.board.sets:
                 tileSetWidget = TileSetWidget(self, set)
                 w,h = TileWidget.defaultSize()
@@ -234,6 +234,19 @@ class GamePanel(wx.Panel):
                 tileWidget.Move((tx,ty))
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
+        for set in self.game.board.sets:
+            sx, sy = set.pos 
+            for t in set.getOrderedTiles():
+                tx, ty = (sx+2, sy+3)
+                tileWidget = self.findTileWidgetById(t.id())
+                if not tileWidget: 
+                    tileWidget = TileWidget(self, t)
+                    self.addTileWidget(tileWidget)
+                    tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
+                    tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
+                tileWidget.Move((tx,ty))
+                tw,th = tileWidget.GetSize()
+                tx = tx+tw+1
 
     def findTileWidgetById(self, tId):
         for c in self.GetChildren():
@@ -332,11 +345,11 @@ class MainWindow(wx.Frame):
             self.gamePanel.reset(game)
 
     def onMsgGameModified(self, payload):
-        log.trace(type(self),"received",payload)
+        #log.trace(type(self),"received",payload)
         self.gamePanel.refresh()
 
     def onMsgPlayerModified(self, payload):
-        log.trace(type(self),"received",payload)
+        #log.trace(type(self),"received",payload)
         self.gamePanel.refresh()
 
     def onUserExit(self, e):

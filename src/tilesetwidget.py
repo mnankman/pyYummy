@@ -47,9 +47,10 @@ class TileSetWidget(dragable.DragablePanel):
         dc.DrawRoundedRectangle(0,0,w,h,6)
     
     def setPos(self, pos):
-        self.Move(pos)
-        if self.set and isinstance(self.set, model.Set):
-            self.set.setPos(pos)
+        if pos:
+            self.Move(pos)
+            if self.set and isinstance(self.set, model.Set):
+                self.set.setPos(pos)
 
     def update(self):
         self.Move(self.set.pos)
@@ -71,4 +72,5 @@ class TileSetWidget(dragable.DragablePanel):
 
     def onMsgSetModified(self, payload):
         self.update()
+        
 

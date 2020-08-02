@@ -37,7 +37,7 @@ class ModelObject(Publisher):
 
     def setModified(self):
         self.__modified__ = True
-        Publisher.dispatch(self, "msg_object_modified", {"object": self} )
+        self.dispatch("msg_object_modified", {"object": self} )
 
     def clearModified(self, recursive=False):
         self.__modified__ = False
@@ -56,12 +56,12 @@ class ModelObject(Publisher):
     def addChild(self, childObject):
         assert isinstance(childObject, ModelObject)
         self.getChildren().append(childObject)
+        self.dispatch("msg_new_child", {"object": self, "child": childObject})
         childObject.subscribe(self, "msg_object_modified", self.onMsgChildObjectModified)
         self.setModified()
-        Publisher.dispatch(self, "msg_new_child", {"object": self, "child": childObject})
 
     def onMsgChildObjectModified(self, payload):
-        Publisher.dispatch(self, "msg_object_modified", {"object": self, "modified": payload} )
+        self.dispatch("msg_object_modified", {"object": self, "modified": payload})
 
     def isModified(self, recursive=False):
         if not self.__modified__ and recursive:
@@ -293,14 +293,14 @@ class Set(TileContainer):
 
     def getData(self):
         return super().getData({
-            "order": self.order,
+            "order": self.order.copy(),
             "pos": self.pos
         })
 
     def load(self, data):
         super().load(data)
         if self.isValidData(data):
-            self.order = self.getDataAttribute(data, "order")
+            self.order = self.getDataAttribute(data, "order").copy()
             self.pos = self.getDataAttribute(data, "pos")
 
         
@@ -342,6 +342,8 @@ class Set(TileContainer):
         orderedTiles = []
         for tId in self.order:
             orderedTiles.append(self.getTile(tId))
+        log.trace(type(self),".getOrderedTiles() -->", 
+            util.collectionToString(orderedTiles, lambda item: str(item.getValue(context=orderedTiles, settype = Set.SETTYPE_RUN))))
         return orderedTiles
 
     def isValidRun(self, tiles):
