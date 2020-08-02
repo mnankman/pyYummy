@@ -343,7 +343,7 @@ class Set(TileContainer):
         for tId in self.order:
             orderedTiles.append(self.getTile(tId))
         log.trace(type(self),".getOrderedTiles() -->", 
-            util.collectionToString(orderedTiles, lambda item: str(item.getValue(context=orderedTiles, settype = Set.SETTYPE_RUN))))
+            util.collectionToString(orderedTiles, lambda item: item.toString()))
         return orderedTiles
 
     def isValidRun(self, tiles):

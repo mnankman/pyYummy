@@ -80,7 +80,8 @@ class Publisher:
     def subscribe(self, sub, event, handler=None):
         if handler == None:
             handler = getattr(sub, 'update')
-        self.get_subscribers(event)[sub] = handler
+        if not sub in self.get_subscribers(event):
+            self.get_subscribers(event)[sub] = handler
 
     def unsubscribe(self, event, sub):
         del self.get_subscribers(event)[sub]
