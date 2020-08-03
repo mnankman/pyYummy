@@ -48,6 +48,12 @@ class ModelObject(Publisher):
 
     def getParent(self):
         return self.__parent__
+    
+    def isValidChild(self, child):
+        valid = False
+        if child and isinstance(child, ModelObject):
+            valid = child in self.__children__ and child.getParent() == self
+        return valid
 
     def getChildren(self):
         if not self.__children__: self.__children = []
@@ -56,6 +62,7 @@ class ModelObject(Publisher):
     def addChild(self, childObject):
         assert isinstance(childObject, ModelObject)
         self.getChildren().append(childObject)
+        assert self.isValidChild(childObject) == True
         self.dispatch("msg_new_child", {"object": self, "child": childObject})
         childObject.subscribe(self, "msg_object_modified", self.onMsgChildObjectModified)
         self.setModified()
@@ -132,6 +139,154 @@ class ModelObject(Publisher):
 
 
 
+class Tile(ModelObject):
+    __tiles__ = {}
+
+    def create(id, color, value, container):
+        if not id in __tiles__:
+            tile = Tile(id, color, value, container)
+            Tile.__tiles__[id] = tile
+            return tile
+        return None
+
+    def add(tile):
+        if not tile.id() in Tile.__tiles__: Tile.__tiles__[tile.id()] = tile
+
+    def getById(id):
+        return Tile.__tiles__[id]
+
+    def __init__(self, id, color, value, container):
+        super().__init__(None) # Tile instances have no parent for now
+        self.__id__ = id
+        self.value = value
+        self.color = color
+        self.container = container
+        self.plate = None
+        Tile.add(self)
+
+    def getType(self):
+        return "Tile"
+
+    def getData(self):
+        return super().getData({
+            "id": self.__id__,
+            "value": self.value,
+            "color": self.color
+        })
+
+    def id(self):
+        return self.__id__
+
+    def move(self, targetContainer):
+        oldContainer = self.container
+        if self.container.moveTile(self, targetContainer):
+            assert oldContainer.containsTile(self) == False
+            assert targetContainer.containsTile(self) == True
+            self.setModified()
+            return True
+        return False
+        
+
+    def rememberPlate(self, plate):
+        if isinstance(plate, Plate):
+            self.plate = plate
+    
+    def forgetPlate(self):
+        self.plate = None
+
+    def toString(self):
+        s = "Tile" + str(self.__id__) + "("
+        s = s + str(self.value) + ","
+        s = s + GameConstants.TILECOLORNAMES[self.color]
+        s = s + ")"
+        return s
+
+    def getValue(self, *args, **kwargs):
+        return self.value
+
+    def getColor(self, *args, **kwargs):
+        return self.color
+
+    def print(self):
+        log.trace(self.toString())
+
+class Joker(Tile):
+    def __init__(self, id, color, container):
+        super().__init__(id, color, 0, container)
+
+    def getNeighbours(self, *args, **kwargs):
+        context = []
+        try:
+            context = kwargs["context"]
+        except KeyError as e:
+            if isinstance(self.container, Set): 
+                context = self.container.getTiles()
+        left,right = (None,None)
+        if self in context:
+            i = context.index(self)
+            if i>0:
+                left = context[i-1]
+            if i<len(context)-1:
+                right = context[i+1]
+        log.trace(
+            type(self), 
+            ".getNeighbours(", 
+            util.collectionToString(context, lambda item: item.toString() if item and isinstance(item, Tile) else str(item)), 
+            ") --> ", 
+            (left.toString() if left else None, right.toString() if right else None))
+        return (left,right)
+
+    def getColor(self, *args, **kwargs):
+        try:
+            settype = kwargs["settype"]
+        except KeyError as e:
+            settype = None
+        left,right = self.getNeighbours(*args, **kwargs)
+        if left and right:
+            if settype == Set.SETTYPE_RUN:
+                return left.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
+        elif left:
+            if settype == Set.SETTYPE_RUN:
+                return left.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
+        elif right:
+            if settype == Set.SETTYPE_RUN:
+                return right.getColor()
+            elif settype == Set.SETTYPE_GROUP:
+                return GameConstants.NOCOLOR
+        return self.color
+
+    def getValue(self, *args, **kwargs):
+        try:
+            settype = kwargs["settype"]
+        except KeyError as e:
+            settype = None
+        left,right = self.getNeighbours(*args, **kwargs)
+        if left and right:
+            if settype == Set.SETTYPE_RUN:
+                return left.getValue()+1
+            elif settype == Set.SETTYPE_GROUP:
+                return left.getValue()
+        elif left:
+            if settype == Set.SETTYPE_RUN:
+                return left.getValue()+1
+            elif settype == Set.SETTYPE_GROUP:
+                return left.getValue()
+        elif right:
+            if settype == Set.SETTYPE_RUN:
+                return right.getValue()-1
+            elif settype == Set.SETTYPE_GROUP:
+                return right.getValue()
+        return self.value
+
+    def toString(self):
+        s = "Joker(" + GameConstants.TILECOLORNAMES[self.color] + ")"
+        return s
+
+
 class TileContainer(ModelObject):
     """
     Instances of this class can contain tiles. It implements the generic methods for this. 
@@ -161,11 +316,14 @@ class TileContainer(ModelObject):
     def getTile(self, tileId):
         return self.__tiles__[tileId]
 
-    def setTile(self, tileId, tile):
+    def setTile(self, tile):
+        tileId = tile.id()
         self.__tiles__[tileId] = tile
+        assert self.containsTile(tile)
+        tile.container = self
         self.setModified()
 
-    def containsTile(self, tileId):
+    def containsTile(self, tile):
         """
         Parameters:
         - tileId: the id of a tile
@@ -173,7 +331,7 @@ class TileContainer(ModelObject):
         Returns: True if a tile with the provided id is contained within this Container,
         False otherwise
         """
-        return tileId in self.__tiles__
+        return tile.id() in self.__tiles__
 
     def getTilesSortedByValue(self):
         return sorted(self.copyTiles().values(), key= lambda tile: tile.value)
@@ -194,10 +352,8 @@ class TileContainer(ModelObject):
         fitPos = self.tileFitPosition(tile)
         #log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
-            self.setTile(tile.id(), tile)
+            self.setTile(tile)
             self.lastTilePosition = fitPos
-            tile.container = self
-            self.setModified()
         return fitPos
 
     def moveTile(self, tile, targetContainer):
@@ -212,15 +368,14 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        #log.trace("moveTile(", tile.toString(), targetContainer.toString(), ")")
+        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
         #log.trace("before move:", self.toString())
         tId = tile.id()
-        if self.containsTile(tId):
+        if self.containsTile(tile):
             if targetContainer.addTile(tile)>0:
                 self.__tiles__.pop(tId)
-            return True
-        else:
-            return False
+                return True
+        return False
 
     def findTile(self, value, color):
         for t in self.getTiles().values():
@@ -326,22 +481,26 @@ class Set(TileContainer):
     def moveTile(self, tile, targetContainer):
         """
         Moves tile from this Set to targetContainer. 
-        Overrides Container.moveTile(self, tile, targetContainer) to add logic related to 
+        Overrides TileContainer.moveTile(self, tile, targetContainer) to add logic related to 
         the order of tiles.
         """
-        if TileContainer.moveTile(self, tile, targetContainer):
+        if super().moveTile(tile, targetContainer):
 #            tile.forgetPlate()
-            for i in range(len(self.order)-1):
-                if self.order[i] == tile.id():
-                    self.order.pop(i)
+            i = self.order.index(tile.id())
+            self.order.pop(i)
             return True
-        else:
-            return False
+        return False
 
     def getOrderedTiles(self):
         orderedTiles = []
         for tId in self.order:
-            orderedTiles.append(self.getTile(tId))
+            if tId in self.__tiles__:
+                orderedTiles.append(self.getTile(tId))
+            else:
+                log.trace(type(self),".getOrderedTiles(): __tiles__ and order inconsistent")
+                log.trace("__tiles__:", self.toString())
+                log.trace("order:", self.order)
+                assert False
         log.trace(type(self),".getOrderedTiles() -->", 
             util.collectionToString(orderedTiles, lambda item: item.toString()))
         return orderedTiles
@@ -438,7 +597,7 @@ class Set(TileContainer):
         Overrides Container.tileFitPosition(self, tile) to add logic related to 
         the order of tiles.
         """
-        if self.containsTile(tile.id()): return 0
+        if self.containsTile(tile): return 0
         orderedTiles = self.getOrderedTiles()
         N = len(orderedTiles)
         #try adding the new tile at the end of the set
@@ -452,152 +611,6 @@ class Set(TileContainer):
 
     def isValid(self):
         return self.getSize()>=3 and self.getSetType(self.getOrderedTiles()) != Set.SETTYPE_INVALID
-
-
-
-class Tile(ModelObject):
-    __tiles__ = {}
-
-    def create(id, color, value, container):
-        if not id in __tiles__:
-            tile = Tile(id, color, value, container)
-            Tile.__tiles__[id] = tile
-            return tile
-        return None
-
-    def add(tile):
-        if not tile.id() in Tile.__tiles__: Tile.__tiles__[tile.id()] = tile
-
-    def getById(id):
-        return Tile.__tiles__[id]
-
-    def __init__(self, id, color, value, container):
-        super().__init__(None) # Tile instances have no parent for now
-        self.__id__ = id
-        self.value = value
-        self.color = color
-        self.container = container
-        self.plate = None
-        Tile.add(self)
-
-    def getType(self):
-        return "Tile"
-
-    def getData(self):
-        return super().getData({
-            "id": self.__id__,
-            "value": self.value,
-            "color": self.color
-        })
-
-    def id(self):
-        return self.__id__
-
-    def move(self, targetContainer):
-        if self.container.moveTile(self, targetContainer):
-            self.setModified()
-            return True
-        return False
-        
-
-    def rememberPlate(self, plate):
-        if isinstance(plate, Plate):
-            self.plate = plate
-    
-    def forgetPlate(self):
-        self.plate = None
-
-    def toString(self):
-        s = "Tile" + str(self.__id__) + "("
-        s = s + str(self.value) + ","
-        s = s + GameConstants.TILECOLORNAMES[self.color]
-        s = s + ")"
-        return s
-
-    def getValue(self, *args, **kwargs):
-        return self.value
-
-    def getColor(self, *args, **kwargs):
-        return self.color
-
-    def print(self):
-        log.trace(self.toString())
-
-class Joker(Tile):
-    def __init__(self, id, color, container):
-        super().__init__(id, color, 0, container)
-
-    def getNeighbours(self, *args, **kwargs):
-        context = []
-        try:
-            context = kwargs["context"]
-        except KeyError as e:
-            if isinstance(self.container, Set): 
-                context = self.container.getTiles()
-        left,right = (None,None)
-        if self in context:
-            i = context.index(self)
-            if i>0:
-                left = context[i-1]
-            if i<len(context)-1:
-                right = context[i+1]
-        log.trace(
-            type(self), 
-            ".getNeighbours(", 
-            util.collectionToString(context, lambda item: item.toString() if item else str(item)), 
-            ") --> ", 
-            (left.toString() if left else None, right.toString() if right else None))
-        return (left,right)
-
-    def getColor(self, *args, **kwargs):
-        try:
-            settype = kwargs["settype"]
-        except KeyError as e:
-            settype = None
-        left,right = self.getNeighbours(*args, **kwargs)
-        if left and right:
-            if settype == Set.SETTYPE_RUN:
-                return left.getColor()
-            elif settype == Set.SETTYPE_GROUP:
-                return GameConstants.NOCOLOR
-        elif left:
-            if settype == Set.SETTYPE_RUN:
-                return left.getColor()
-            elif settype == Set.SETTYPE_GROUP:
-                return GameConstants.NOCOLOR
-        elif right:
-            if settype == Set.SETTYPE_RUN:
-                return right.getColor()
-            elif settype == Set.SETTYPE_GROUP:
-                return GameConstants.NOCOLOR
-        return self.color
-
-    def getValue(self, *args, **kwargs):
-        try:
-            settype = kwargs["settype"]
-        except KeyError as e:
-            settype = None
-        left,right = self.getNeighbours(*args, **kwargs)
-        if left and right:
-            if settype == Set.SETTYPE_RUN:
-                return left.getValue()+1
-            elif settype == Set.SETTYPE_GROUP:
-                return left.getValue()
-        elif left:
-            if settype == Set.SETTYPE_RUN:
-                return left.getValue()+1
-            elif settype == Set.SETTYPE_GROUP:
-                return left.getValue()
-        elif right:
-            if settype == Set.SETTYPE_RUN:
-                return right.getValue()-1
-            elif settype == Set.SETTYPE_GROUP:
-                return right.getValue()
-        return self.value
-
-    def toString(self):
-        s = "Joker(" + GameConstants.TILECOLORNAMES[self.color] + ")"
-        return s
 
 class Pile(TileContainer):
     def __init__(self, parent):
