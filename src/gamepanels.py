@@ -199,6 +199,7 @@ class GamePanel(wx.Panel):
     def reset(self, game):
         self.game = game
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.game.getCurrentPlayer().subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
         self.boardPanel.reset(game.board)
         self.resetTileWidgets()
         self.refreshTiles()

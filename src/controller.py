@@ -45,6 +45,7 @@ class Controller:
         return self.model.getPlayer(name)
 
     def pick(self):
+        log.trace(type(self),",pick()")
         player = self.getCurrentPlayer()
         if player:
             player.pickTile()

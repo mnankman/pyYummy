@@ -635,10 +635,12 @@ class Pile(TileContainer):
         return pickedTile
 
     def load(self, data):
+        pass
+        """
         super().load(data)
         if self.isValidData(data):
             self.nextId = self.getDataAttribute(data, "nextId")
-
+        """
 
 
 class Board(TileContainer):
@@ -788,13 +790,16 @@ class Game(ModelObject):
                 p.pickTile()
 
     def getPlayer(self, name):
+        player = None
         if name and name in self.players:
-            return self.players[name]
-        return None
+            player = self.players[name]
+        log.trace(type(self), ".getPlayer(", name, ") --> ", player)
+        return player
 
     def getCurrentPlayer(self):
         if self.currentPlayer:
             return self.getPlayer(self.currentPlayer)
+        log.trace(type(self), ".getCurrentPlayer() --> None")
         return None
 
     def commitMoves(self, player):

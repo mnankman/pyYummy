@@ -133,7 +133,7 @@ class MainWindow(wx.Frame):
         # Create open file dialog
         dlg = wx.FileDialog(self, "Save", "", "", 
             "Yummy files (*.yummy)|*.yummy", 
-            wx.FD_OPEN)
+            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_CANCEL:
             return
         path = dlg.GetPath()
