@@ -7,10 +7,12 @@ log = Log()
 class MessageQueue:
     MAXQUEUESIZE = 20
     instance = None
+    asyncOff = False
     
-    def getInstance():
+    def getInstance(asyncOff=False):
         if MessageQueue.instance == None: 
             MessageQueue.instance = MessageQueue.__MessageQueue__(MessageQueue.MAXQUEUESIZE)
+            MessageQueue.asyncOff = asyncOff
         return MessageQueue.instance
 
     def handleMessages():
@@ -26,19 +28,23 @@ class MessageQueue:
                 mq.pushMsg(msg)
                 
     def processMessages(messages):
-        loop = asyncio.get_running_loop()
+        if MessageQueue.asyncOff:
+            MessageQueue.addMessages(messages)
+            MessageQueue.handleMessages()
+        else:
+            loop = asyncio.get_running_loop()
 
-        try:
-            callback = functools.partial(MessageQueue.addMessages, messages)
-            loop.call_soon_threadsafe(callback)
-        finally:
-            pass
+            try:
+                callback = functools.partial(MessageQueue.addMessages, messages)
+                loop.call_soon_threadsafe(callback)
+            finally:
+                pass
 
-        try:
-            callback = MessageQueue.handleMessages
-            loop.call_soon_threadsafe(callback)
-        finally:
-            pass
+            try:
+                callback = MessageQueue.handleMessages
+                loop.call_soon_threadsafe(callback)
+            finally:
+                pass
             
     class __MessageQueue__:
         def __init__(self, maxQueueSize):

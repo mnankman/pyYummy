@@ -1,5 +1,6 @@
 import unittest
 from model import *
+from pubsub import MessageQueue
 
 from log import Log
 log = Log()
@@ -8,7 +9,9 @@ log.setVerbosity(Log.VERBOSITY_VERBOSE)
 class ModelTestMethods(unittest.TestCase):
 
     def setUp(self):
+        MessageQueue.getInstance(True)
         self.root = ModelObject()
+        
 
     def test_AddTilesToSet(self):
         set = Set(self.root)
@@ -133,6 +136,7 @@ class ModelTestMethods(unittest.TestCase):
 class GameTestMethods(unittest.TestCase):
 
     def setUp(self):
+        MessageQueue.getInstance(True)
         self.game = Game(2)
         self.game.addPlayer("Joe")
         self.joe = self.game.getPlayer("Joe")
@@ -229,6 +233,11 @@ class GameTestMethods(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
     #log.setVerbosity(Log.VERBOSITY_NONE)
-    unittest.main()
+    try:
+        loop.run_until_complete(unittest.main())
+    finally:    
+        loop.stop()
+        loop.close()
     
