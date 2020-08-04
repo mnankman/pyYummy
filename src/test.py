@@ -141,6 +141,7 @@ class GameTestMethods(unittest.TestCase):
         self.game.addPlayer("Joe")
         self.joe = self.game.getPlayer("Joe")
         self.assertIsNotNone(self.joe)
+        self.game.start(self.joe)
 
     def test_MoveTileFromPileToBoard(self):
         pileSizeBefore = self.game.pile.getSize()
@@ -215,6 +216,7 @@ class GameTestMethods(unittest.TestCase):
 
         #now Joe commits the set he just put on the board
         self.joe.commitMoves()
+        print(self.game.toString())
 
         #just the valid set should remain on the board (board contains 1 set)
         self.assertEqual(len(self.game.board.sets),1)

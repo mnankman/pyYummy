@@ -181,7 +181,7 @@ class Tile(ModelObject):
         oldContainer = self.container
         if self.container.moveTile(self, targetContainer):
             assert oldContainer.containsTile(self) == False
-            assert targetContainer.containsTile(self) == True
+            assert self.container.containsTile(self) == True
             self.setModified()
             return True
         return False
@@ -670,6 +670,7 @@ class Board(TileContainer):
         return set
 
     def cleanUp(self, validateSets=True):
+        log.trace(type(self),".cleanUp(validateSets=",validateSets,")")
         #cleanup unfinished and invalid sets
         for s in self.sets:
             if not s.isEmpty():
@@ -817,6 +818,7 @@ class Game(ModelObject):
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
+        log.trace(type(self),".commitMoves(",player.name,")")
         if player.name == self.currentPlayer and player.getParent() == self:
             # clean the board with validation
             self.board.cleanUp(True)
