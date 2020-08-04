@@ -32,8 +32,8 @@ class BoardPanel(wx.Panel):
         for tsw in tileSetWidgets:
             sx,sy,sw,sh = tsw.GetRect()
             xOffset = 3
-            for t in tsw.set.getTilesSortedByValue():
-                tw = self.parent.findTileWidgetById(t.id())
+            for tId in tsw.set.order:
+                tw = self.parent.findTileWidgetById(tId)
                 if tw and not(tw.isBeingDragged()):
                     w,h = tw.GetSize()
                     tw.Move((sx+xOffset, sy+3))
@@ -125,7 +125,7 @@ class GamePanel(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent=parent, size=(800,600))
         self.SetBackgroundColour('#CCCCCC')
-        self.__tileWidgets__ = None
+        self.__tileWidgets__ = []
         self.game = None
         self.sortMethod = 0
         
@@ -176,12 +176,12 @@ class GamePanel(wx.Panel):
                 tx = tx+tw+1
         for set in self.game.board.sets:
             sx, sy = set.pos 
-            setTiles = set.getOrderedTiles()
-            for t in setTiles:
+            setTiles = set.order
+            for tId in setTiles:
                 tx, ty = (sx+2, sy+3)
-                tileWidget = self.findTileWidgetById(t.id())
+                tileWidget = self.findTileWidgetById(tId)
                 if not tileWidget: 
-                    tileWidget = TileWidget(self, t)
+                    tileWidget = TileWidget(self, model.Tile.getById(tId))
                     self.addTileWidget(tileWidget)
                     tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
                     tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
@@ -199,7 +199,8 @@ class GamePanel(wx.Panel):
     def reset(self, game):
         self.game = game
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-        self.game.getCurrentPlayer().subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
+        if self.game.getCurrentPlayer():
+            self.game.getCurrentPlayer().subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
         self.boardPanel.reset(game.board)
         self.resetTileWidgets()
         self.refreshTiles()

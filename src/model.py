@@ -177,9 +177,9 @@ class Tile(ModelObject):
     def id(self):
         return self.__id__
 
-    def move(self, targetContainer):
+    def move(self, targetContainer, pos=None):
         oldContainer = self.container
-        if self.container.moveTile(self, targetContainer):
+        if self.container.moveTile(self, targetContainer, pos):
             assert oldContainer.containsTile(self) == False
             assert self.container.containsTile(self) == True
             self.setModified()
@@ -339,7 +339,7 @@ class TileContainer(ModelObject):
     def getTilesGroupedByColor(self):
         return sorted(self.getTilesSortedByValue(), key= lambda tile: tile.color)
 
-    def addTile(self, tile):
+    def addTile(self, tile, pos=None):
         """
         Parameters:
         - tile: an instance of class Tile
@@ -349,14 +349,14 @@ class TileContainer(ModelObject):
         the fit position for the new tile. If the tile does not fit (fitpos==0) the tile will 
         not be added to the container. 
         """
-        fitPos = self.tileFitPosition(tile)
+        fitPos = self.tileFitPosition(tile, pos)
         #log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
             self.setTile(tile)
             self.lastTilePosition = fitPos
         return fitPos
 
-    def moveTile(self, tile, targetContainer):
+    def moveTile(self, tile, targetContainer, pos=None):
         """
         Parameters:
         - tile: an instance of class Tile
@@ -368,11 +368,11 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
+#        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
         #log.trace("before move:", self.toString())
         tId = tile.id()
         if self.containsTile(tile):
-            if targetContainer.addTile(tile)>0:
+            if targetContainer.addTile(tile, pos)>0:
                 self.__tiles__.pop(tId)
                 return True
         return False
@@ -382,7 +382,7 @@ class TileContainer(ModelObject):
             if (t.value==value and t.color==color):
                 return t
 
-    def tileFitPosition(self, tile):
+    def tileFitPosition(self, tile, pos=None):
         """
         Parameters:
         - tile: an instance of class Tile
@@ -465,26 +465,29 @@ class Set(TileContainer):
             self.setModified()
             log.trace(type(self), ".setPos", pos)
 
-    def addTile(self, tile):
+    def addTile(self, tile, pos=None):
         """
         Adds a tile to this Set instance. A set maintains the order in which tiles are added.
         Overrides Container.addTile(self, tile) to add logic ralated to the order of tiles.
         """
-        fitPos = TileContainer.addTile(self, tile)
-        if fitPos>0:
+        fitPos = TileContainer.addTile(self, tile, pos)
+        if pos==None and fitPos>0:
             if fitPos>len(self.order):
                 self.order.append(tile.id())
             else:
                 self.order.insert(fitPos-1, tile.id())
+        elif pos == fitPos:
+            self.order.insert(pos-1, tile.id())
+            
         return fitPos
 
-    def moveTile(self, tile, targetContainer):
+    def moveTile(self, tile, targetContainer, pos=None):
         """
         Moves tile from this Set to targetContainer. 
         Overrides TileContainer.moveTile(self, tile, targetContainer) to add logic related to 
         the order of tiles.
         """
-        if super().moveTile(tile, targetContainer):
+        if super().moveTile(tile, targetContainer, pos):
 #            tile.forgetPlate()
             i = self.order.index(tile.id())
             self.order.pop(i)
@@ -591,7 +594,7 @@ class Set(TileContainer):
         )
         return settype
 
-    def tileFitPosition(self, tile):
+    def tileFitPosition(self, tile, pos=None):
         """
         Determines the fit position of tile in this Set
         Overrides Container.tileFitPosition(self, tile) to add logic related to 
@@ -600,14 +603,21 @@ class Set(TileContainer):
         if self.containsTile(tile): return 0
         orderedTiles = self.getOrderedTiles()
         N = len(orderedTiles)
-        #try adding the new tile at the end of the set
-        if self.getSetType(orderedTiles+[tile]) != Set.SETTYPE_INVALID:
-            return N+1
-        #try adding the new tile at the beginning of the set
-        elif self.getSetType([tile]+orderedTiles) != Set.SETTYPE_INVALID:
-            return 1
-        else:
-            return 0
+        if pos==None:
+            #try adding the new tile at the end of the set
+            if self.getSetType(orderedTiles+[tile]) != Set.SETTYPE_INVALID:
+                return N+1
+            #try adding the new tile at the beginning of the set
+            elif self.getSetType([tile]+orderedTiles) != Set.SETTYPE_INVALID:
+                return 1
+            else:
+                return 0
+        elif pos>0:
+            orderedTiles.insert(pos-1, tile)
+            if self.getSetType(orderedTiles) != Set.SETTYPE_INVALID:
+                return pos
+            else:
+                return 0
 
     def isValid(self):
         return self.getSize()>=3 and self.getSetType(self.getOrderedTiles()) != Set.SETTYPE_INVALID
@@ -694,8 +704,8 @@ class Board(TileContainer):
             else:
                 i+=1
 
-    def addTile(self, tile):
-        TileContainer.addTile(self, tile)
+    def addTile(self, tile, pos=None):
+        TileContainer.addTile(self, tile, pos)
         set = self.createSet(tile)
         self.sets.append(set)
         self.setModified()
@@ -727,8 +737,8 @@ class Plate(TileContainer):
     def getType(self):
         return "Plate"
 
-    def moveTile(self, tile, targetContainer):
-        if TileContainer.moveTile(self, tile, targetContainer):
+    def moveTile(self, tile, targetContainer, pos=None):
+        if TileContainer.moveTile(self, tile, targetContainer, pos):
             tile.rememberPlate(self)
             return True
         else:
