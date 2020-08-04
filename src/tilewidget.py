@@ -1,18 +1,18 @@
 import wx
-from dragable import DragablePanel
+from draggable import DraggablePanel
 import model
 
 #COLORS = ["#000000", "#3300CC", "#FF3300", "#FF6600"]
 COLORS = ["#333333", "#000066", "#CC0033", "#FF9933"]
 RESOURCES="src/resource"
 
-class TileWidget(DragablePanel):
+class TileWidget(DraggablePanel):
     yummyIcon = None
     def defaultSize():
         return (36,50)
 
     def __init__(self, parent, tile):
-        DragablePanel.__init__(self, parent, size=TileWidget.defaultSize(), style=wx.BORDER_RAISED|wx.CLIP_CHILDREN)
+        DraggablePanel.__init__(self, parent, size=TileWidget.defaultSize(), style=wx.BORDER_RAISED|wx.CLIP_CHILDREN)
 
         if not TileWidget.yummyIcon:
             TileWidget.yummyIcon = wx.Bitmap(RESOURCES+"/yummy-icon-28-white.png")

@@ -1,7 +1,7 @@
 import wx
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
-import dragable
+import draggable
 import model
 import util
 
@@ -169,8 +169,8 @@ class GamePanel(wx.Panel):
                 if not tileWidget: 
                     tileWidget = TileWidget(self, t)
                     self.addTileWidget(tileWidget)
-                    tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
-                    tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
+                    tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.boardPanel.onTileHover)
+                    tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.boardPanel.onTileRelease)
                 tileWidget.Move((tx,ty))
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
@@ -183,8 +183,8 @@ class GamePanel(wx.Panel):
                 if not tileWidget: 
                     tileWidget = TileWidget(self, model.Tile.getById(tId))
                     self.addTileWidget(tileWidget)
-                    tileWidget.Bind(dragable.EVT_DRAGABLE_HOVER, self.boardPanel.onTileHover)
-                    tileWidget.Bind(dragable.EVT_DRAGABLE_RELEASE, self.boardPanel.onTileRelease)
+                    tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.boardPanel.onTileHover)
+                    tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.boardPanel.onTileRelease)
                 tileWidget.Move((tx,ty))
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1

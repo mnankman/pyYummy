@@ -1,10 +1,10 @@
 import wx
-import dragable
+import draggable
 import model
 import util
 from tilewidget import TileWidget
 
-class TileSetWidget(dragable.DragablePanel):  
+class TileSetWidget(draggable.DraggablePanel):  
     normalPenColor = 'Black'
     highlightPenColor = 'White'
     modifiedPenColor = '#008800'
@@ -19,7 +19,7 @@ class TileSetWidget(dragable.DragablePanel):
             underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT) 
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
-        self.Bind(dragable.EVT_DRAGABLE_RELEASE, self.onDragRelease)
+        self.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onDragRelease)
         self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
         
     def getStateStr(self):

@@ -4,10 +4,10 @@ import wx.lib.newevent
 from log import Log
 log = Log()
 
-DragableHoverEvent, EVT_DRAGABLE_HOVER = wx.lib.newevent.NewEvent()
-DragableReleaseEvent, EVT_DRAGABLE_RELEASE = wx.lib.newevent.NewEvent()
+DraggableHoverEvent, EVT_DRAGGABLE_HOVER = wx.lib.newevent.NewEvent()
+DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
 
-class DragablePanel(wx.Panel):
+class DraggablePanel(wx.Panel):
     def __init__(self, parent, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.parent = parent
@@ -33,14 +33,14 @@ class DragablePanel(wx.Panel):
             mx,my = self.parent.ScreenToClient(wx.GetMousePosition())
             ox,oy = self.mOffset
             self.Move((mx-ox, my-oy))
-            hoverEvt = DragableHoverEvent(pos=(mx-ox, my-oy), obj=self)
+            hoverEvt = DraggableHoverEvent(pos=(mx-ox, my-oy), obj=self)
             wx.PostEvent(self, hoverEvt)
 
     def OnMouseUp(self, event):
         log.trace(type(self),".OnMouseUp(",event,")")
         if (self.isBeingDragged()): 
             if (self.HasCapture()): self.ReleaseMouse()
-            releaseEvt = DragableReleaseEvent(pos=self.GetPosition(), obj=self)
+            releaseEvt = DraggableReleaseEvent(pos=self.GetPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
             self.__dragged__ = False
 

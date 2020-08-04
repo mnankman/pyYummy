@@ -7,7 +7,7 @@ import wx.lib.inspection
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
 from gamepanels import BoardPanel, GamePanel, PlatePanel
-import dragable
+import draggable
 import model
 from controller import Controller
 import util
