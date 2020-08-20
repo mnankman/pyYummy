@@ -141,8 +141,8 @@ class GameTestMethods(unittest.TestCase):
     def setUp(self):
         MessageQueue.getInstance(True)
         self.game = Game(2)
-        self.game.addPlayer("Joe")
-        self.joe = self.game.getPlayer("Joe")
+        self.game.addPlayerByName("Joe")
+        self.joe = self.game.getPlayerByName("Joe")
         self.assertIsNotNone(self.joe)
         self.game.start(self.joe)
         print(self.game.toString())
@@ -161,8 +161,8 @@ class GameTestMethods(unittest.TestCase):
         self.assertEqual(pileSizeBefore-pileSizeAfter, 1)
 
     def test_AddSecondPlayer(self):
-        self.game.addPlayer("Peter")
-        self.assertIsNotNone(self.game.getPlayer("Peter"))
+        self.game.addPlayerByName("Peter")
+        self.assertIsNotNone(self.game.getPlayerByName("Peter"))
 
     def test_PickTile(self):
         plateSizeBefore = self.joe.plate.getSize()

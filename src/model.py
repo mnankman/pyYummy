@@ -29,6 +29,7 @@ class ModelObject(Publisher):
         super().__init__(ModelObject.EVENTS)
         self.__modified__ = False
         self.__children__ = []
+        self.__persistent__ = []
         self.__parent__ = None
         if parent:
             assert isinstance(parent, ModelObject)
@@ -103,15 +104,25 @@ class ModelObject(Publisher):
     def getType(self):
         """
         returns the type name for this ModelObject
-        must be overriden by subclasses
         """
-        return None
+        return type(self).__name__
     
+    def persist(self, persistentAttrName):
+        self.__persistent__.append((type(self).__name__, persistentAttrName))
+    
+       
     def getPersistentAttributes(self):
         result = {}
-        for a in self.__dict__:
-            if a[0].startswith("__"):
-                results[a[0]]=a[1]
+        for pa in self.__persistent__:
+            className = pa[0]
+            attrName = pa[1]
+            names = ["_"+className+"__"+attrName]
+            for base in self.__class__.__bases__:
+                names.append("_"+base.__name__+"__"+attrName)
+            for nm in names:
+                if nm in self.__dict__:
+                    result[attrName] = self.__dict__[nm]
+        log.trace("\n\n", type(self), ".getPersistentAttributes() -->", result, "\n\n")
         return result
 
     def getData(self, update=None):
@@ -144,6 +155,55 @@ class ModelObject(Publisher):
     def getDataAttribute(self, data, attribute):
         if attribute in data: return data[attribute]
         return None
+    
+    def setDataAttributes(self, data):
+        log.trace(type(self), ".setDataAttributes(", data, ")")
+        className = self.getDataType(data)
+        for item in data:
+            if not item in ["type", "elements"]:
+                attrValue = data[item]
+                names = ["_"+className+"__"+item]
+                for base in self.__class__.__bases__:
+                    names.append("_"+base.__name__+"__"+item)
+                for nm in names:
+                    setterName = "set"+util.upperFirst(item)
+                    if hasattr(type(self), setterName):
+                        setter = getattr(type(self), setterName)
+                        log.trace(setter, "(", attrValue, ")")
+                        setter(self, attrValue)
+                    else:
+                        if hasattr(self, nm):
+                            log.trace("set: ", nm, " = ", attrValue)
+                            setattr(self, nm, attrValue)
+                        else:
+                            log.trace(className, "does not have an attribute named:" + item, 
+                                "\n\n", type(self), ".__dict__", self.__dict__, "\n\n")
+            
+    def loadFromDict(self, data):
+        log.trace("\n\n",type(self), ".loadFromDict(", data, ")")
+        if self.isValidData(data):
+            self.setDataAttributes(data)
+            elements = self.getDataElements(data)
+            if elements:
+                for e in elements:
+                    className = self.getDataType(data)
+                    elementName = self.getDataType(e)
+                    elementGetterName = "get"+self.getDataType(e)
+                    elementAdderName = "add"+self.getDataType(e)
+                    if hasattr(type(self), elementGetterName):
+                        getElement = getattr(type(self), elementGetterName)
+                        element = getElement(self)
+                        assert isinstance(element, ModelObject)
+                        element.loadFromDict(e)
+                    elif hasattr(type(self), elementAdderName):
+                        addElement = getattr(type(self), elementAdderName)
+                        element = addElement(self)
+                        assert isinstance(element, ModelObject)
+                        element.loadFromDict(e)
+                    else:
+                        log.trace("no getter or creator method found for element", 
+                                  className + "." + elementName, 
+                                  "\n\n", type(self), ".__dict__", type(self).__dict__, "\n\n")
 
 
 
@@ -168,6 +228,8 @@ class Tile(ModelObject):
         self.__id = id
         self.__value = value
         self.__color = color
+        self.persist("value")
+        self.persist("color")
         self._container = container
         self.plate = None
         Tile.add(self)
@@ -176,11 +238,8 @@ class Tile(ModelObject):
         return self._container
     
     def setContainer(self, container):
-        log.trace(self.toString(), ".setContainer(", type(container), ")")
+        #log.trace(self.toString(), ".setContainer(", type(container), ")")
         self._container = container
-
-    def getType(self):
-        return "Tile"
 
     def id(self):
         return self.__id
@@ -208,11 +267,9 @@ class Tile(ModelObject):
         return s
 
     def getValue(self, *args, **kwargs):
-        log.trace(type(self),".getValue()")
         return self.__value
 
     def getColor(self, *args, **kwargs):
-        log.trace(type(self),".getColor()")
         return self.__color
 
     def print(self):
@@ -236,12 +293,14 @@ class Joker(Tile):
                 left = context[i-1]
             if i<len(context)-1:
                 right = context[i+1]
+        """        
         log.trace(
             type(self), 
             ".getNeighbours(", 
             util.collectionToString(context, lambda item: item.toString() if item and isinstance(item, Tile) else str(item)), 
             ") --> ", 
             (left.toString() if left else None, right.toString() if right else None))
+        """
         return (left,right)
 
     def getColor(self, *args, **kwargs):
@@ -304,8 +363,17 @@ class TileContainer(ModelObject):
     def __init__(self, parent):
         super().__init__(parent)
         self.__tiles = []
+        self.persist("tiles")
         self.lastTilePosition = 0
 
+    def setTiles(self, tiles):
+        if tiles:
+            for tId in tiles:
+                if not tId in self.__tiles:
+                    tile = Tile.getById(tId)
+                    if tile.getContainer() != self:
+                        tile.move(self)
+   
     def getTiles(self):
         return self.__tiles
 
@@ -392,7 +460,7 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
+        #log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
         #log.trace("before move:", self.toString())
         tId = tile.id()
         if self.containsTile(tile):
@@ -466,9 +534,9 @@ class Set(TileContainer):
         super().__init__(parent)
         self.__order = []
         self.__pos = pos  #this is a tuple (x,y) and is the relative position of the set on the board
+        self.persist("order")
+        self.persist("pos")
 
-    def getType(self):
-        return "Set"
 
     def load(self, data):
         super().load(data)
@@ -649,6 +717,7 @@ class Pile(TileContainer):
     def __init__(self, parent):
         super().__init__(parent)
         self.__nextId = 0
+        self.persist("nextId")
         for color in GameConstants.TILECOLORS:
             for value in GameConstants.TILEVALUES:
                 for i in range(2):
@@ -656,14 +725,6 @@ class Pile(TileContainer):
                     TileContainer.addTile(self, t)
         TileContainer.addTile(self, Joker(self.getNextId(), GameConstants.BLACK, self))
         TileContainer.addTile(self, Joker(self.getNextId(), GameConstants.RED, self))
-
-    def getType(self):
-        return "Pile"
-
-    def getData(self):
-        return super().getData({
-            "nextId": self.__nextId
-        })
 
     def getNextId(self):
         nextId = self.__nextId
@@ -682,28 +743,17 @@ class Pile(TileContainer):
             pickedTile.move(player.plate)
         return pickedTile
 
-    def load(self, data):
-        pass
-        """
-        super().load(data)
-        if self.isValidData(data):
-            self.__nextId = self.getDataAttribute(data, "nextId")
-        """
-
 
 class Board(TileContainer):
     def __init__(self, parent):
         super().__init__(parent)
         self.sets = []
-
-    def getType(self):
-        return "Board"
-
-    def createSet(self, tile):
+        
+    def addSet(self):
         set = Set(self)
-        tile.move(set)
+        self.sets.append(set)
         return set
-
+        
     def cleanUp(self, validateSets=True):
         log.trace(type(self),".cleanUp(validateSets=",validateSets,")")
         #cleanup unfinished and invalid sets
@@ -731,22 +781,10 @@ class Board(TileContainer):
 
     def addTile(self, tile, pos=None):
         TileContainer.addTile(self, tile, pos)
-        set = self.createSet(tile)
-        self.sets.append(set)
+        set = self.addSet()
+        tile.move(set)
         self.setModified()
         return 1
-
-    def load(self, data):
-        super().load(data)
-        if self.isValidData(data):
-            elements = self.getDataElements(data)
-            if elements:
-                for e in elements:
-                    if self.getDataType(e) == "Set": 
-                        set = Set(self)
-                        set.load(e)
-                        self.sets.append(set)
-                        self.setModified()
 
     def toString(self):
         s = "Board(" + str(len(self.sets)) + " sets):"
@@ -758,10 +796,8 @@ class Plate(TileContainer):
     def __init__(self, player):
         super().__init__(player)
         self.__player = player
+        #self.persist("player")
 
-    def getType(self):
-        return "Plate"
-    
     def getPlayer(self):
         return self.__player
 
@@ -773,17 +809,18 @@ class Plate(TileContainer):
             return False
 
 class Player(ModelObject):
-    def __init__(self, name, game):
+    def __init__(self, game, name=None):
         super().__init__(game)
         self.plate = Plate(self)
         self.__name = name
+        self.persist("name")
         self.game = game
-
-    def getType(self):
-        return "Player"
 
     def getName(self):
         return self.__name
+    
+    def setName(self, name):
+        self.__name = name
 
     def load(self, data):
         if self.isValidData(data):
@@ -813,36 +850,51 @@ class Player(ModelObject):
 class Game(ModelObject):
     def __init__(self, maxPlayers=4):
         super().__init__()
-        self._players = {}
+        self._players = []
         self.board = Board(self)
         self.pile = Pile(self)
         self.__maxPlayers = maxPlayers
         self.__currentPlayer = None
+        self.persist("maxPlayers")
+        self.persist("currentPlayer")
+        
+    def getBoard(self):
+        return self.board
+    
+    def getPile(self):
+        return self.pile
 
-    def getType(self):
-        return "Game"
-
-    def addPlayer(self, name):
+    def addPlayer(self):
         if len(self._players) < self.__maxPlayers:
-            self._players[name] = Player(name, self)
+            player = Player(self)
+            self._players.append(player)
             self.setModified()
+            return player
+
+    def addPlayerByName(self, name):
+        if not self.getPlayerByName(name):
+            if len(self._players) < self.__maxPlayers:
+                self._players.append(Player(self, name))
+                self.setModified()
 
     def start(self, player):
         self.__currentPlayer = player.getName()
-        for p in self._players.values():
-            for i in range(15):
+        for p in self._players:
+            for i in range(14):
                 p.pickTile()
 
-    def getPlayer(self, name):
+    def getPlayerByName(self, name):
         player = None
-        if name and name in self._players:
-            player = self._players[name]
-        log.trace(type(self), ".getPlayer(", name, ") --> ", player)
+        for p in self._players:
+            if p.getName() == name:
+                player = p
+                break
+        #log.trace(type(self), ".getPlayerByName(", name, ") --> ", player)
         return player
 
     def getCurrentPlayer(self):
         if self.__currentPlayer:
-            return self.getPlayer(self.__currentPlayer)
+            return self.getPlayerByName(self.__currentPlayer)
         log.trace(type(self), ".getCurrentPlayer() --> None")
         return None
 
@@ -855,25 +907,10 @@ class Game(ModelObject):
             # recursively clear the modified flag of all ModelObject instances under Game
             self.clearModified(True) 
 
-    def load(self, data):
-        if self.isValidData(data):
-            self.__maxPlayers = self.getDataAttribute(data, "maxPlayers")
-            self.__currentPlayer = self.getDataAttribute(data, "currentPlayer")
-            elements = self.getDataElements(data)
-            if elements:
-                for e in elements:
-                    if self.getDataType(e) == "Board": self.board.load(e)
-                    if self.getDataType(e) == "Pile": self.pile.load(e)
-                    if self.getDataType(e) == "Player": 
-                        playerName = self.getDataAttribute(e, "name")
-                        self.addPlayer(playerName)
-                        self.getPlayer(playerName).load(e)
-
-
     def toString(self):
         s = "\ngame(" + str(len(self._players)) + " players):\n"
-        for name in self._players:
-            s = s + self._players[name].toString()
+        for p in self._players:
+            s = s + p.toString()
         s = s + "\npile: " + self.pile.toString()
         s = s + "\nboard: " + self.board.toString()
         return s
@@ -901,13 +938,13 @@ class Model(Publisher):
         if self.currentGame:
             del self.currentGame
         self.currentGame = Game(0)
-        self.currentGame.load(data)
+        self.currentGame.loadFromDict(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):
         if self.currentGame:
-            self.currentGame.addPlayer(name)
-            self.dispatch("msg_new_player", {"game": self.currentGame, "player": self.currentGame.getPlayer(name)})
+            self.currentGame.addPlayerByName(name)
+            self.dispatch("msg_new_player", {"game": self.currentGame, "player": self.currentGame.getPlayerByName(name)})
 
     def getCurrentGame(self):
         return self.currentGame
@@ -917,7 +954,7 @@ class Model(Publisher):
 
     def getPlayer(self, name):
         if self.currentGame:
-            return self.currentGame.getPlayer(name)
+            return self.currentGame.getPlayerByName(name)
         return None
 
     def getCurrentPlayer(self):

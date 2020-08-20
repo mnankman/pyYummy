@@ -22,6 +22,10 @@ def collectionToString(collection, itemtostr=lambda item: str(item)):
     s += "]"
     return s
 
+def upperFirst(str):
+    n = len(str)
+    return str[0:1].upper() + str[1:]
+
 if __name__ == "__main__":
     c = [1,1,1,2,1]
     print(filteredCount(lambda x: x>1, c))
@@ -36,3 +40,5 @@ if __name__ == "__main__":
     print(filteredCount(lambda x: x>1, d.values()))
 
     print(collectionToString(c))
+    
+    print(upperFirst("test"))

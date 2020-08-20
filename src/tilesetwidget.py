@@ -37,8 +37,7 @@ class TileSetWidget(draggable.DraggablePanel):
         #dc = wx.BufferedPaintDC(self)
         if self.set.isModified():
             tw,th = TileWidget.defaultSize()
-            w,h = self.GetClientSize()
-            self.SetSize(self.set.getSize()*36+6, th+30)
+            self.updateSize()
         dc = wx.PaintDC(self)
         self.draw(dc)
 
@@ -61,6 +60,9 @@ class TileSetWidget(draggable.DraggablePanel):
         dc.SetTextForeground("white")
         dc.DrawText(self.getStateStr(), 3, th+12)
 
+    def updateSize(self):
+        w,h = self.GetClientSize()
+        self.SetSize(len(self.set.getTiles())*36+6, h)
     
     def setPos(self, pos):
         if pos:
@@ -100,8 +102,7 @@ class TileSetWidget(draggable.DraggablePanel):
         x,y = event.pos
         self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         if tile.move(self.set, self.newTilePos):
-            w,h = self.GetClientSize()
-            self.SetSize(len(self.set.getTiles())*36+6, h)
+            #self.updateSize()
             self.highlight = False
             self.Refresh()
         self.newTilePos = None
