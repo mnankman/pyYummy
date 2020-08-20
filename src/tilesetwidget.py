@@ -69,13 +69,13 @@ class TileSetWidget(draggable.DraggablePanel):
                 self.set.setPos(pos)
 
     def update(self):
-        self.Move(self.set.pos)
+        self.Move(self.set.getPos())
         
     def getTilePosInSet(self, pos, tileWidget):
         posInSet = 1
         w,h = self.GetSize()
         tx,ty = pos #coordinates of hovering or dropped tile
-        sx,sy = self.set.pos
+        sx,sy = self.set.getPos()
         mx,my = self.ScreenToClient(wx.GetMousePosition())
         
         rx = tx-sx #the relative x-pos of the dropped tile within the set

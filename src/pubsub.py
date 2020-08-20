@@ -14,6 +14,12 @@ class MessageQueue:
             MessageQueue.instance = MessageQueue.__MessageQueue__(MessageQueue.MAXQUEUESIZE)
             MessageQueue.asyncOff = asyncOff
         return MessageQueue.instance
+    
+    def reset(asyncOff=False):
+        mq = MessageQueue.getInstance(asyncOff)
+        if mq:
+            mq.reset()
+        
 
     def handleMessages():
         mq = MessageQueue.getInstance()
@@ -48,6 +54,9 @@ class MessageQueue:
             
     class __MessageQueue__:
         def __init__(self, maxQueueSize):
+            self.queue = []
+            
+        def reset(self):
             self.queue = []
             
         def pushMsg(self, msg):

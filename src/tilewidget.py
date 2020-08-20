@@ -18,6 +18,7 @@ class TileWidget(DraggablePanel):
             TileWidget.yummyIcon = wx.Bitmap(RESOURCES+"/yummy-icon-28-white.png")
 
         self.tile = tile
+        self.brush = wx.Brush(COLORS[self.tile.getColor()])
 
         self.font = wx.Font(14, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
             underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT) 
@@ -31,7 +32,7 @@ class TileWidget(DraggablePanel):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
 
         if not isinstance(self.tile, model.Joker):
-            self.label = wx.StaticText(self, -1, str(self.tile.value))
+            self.label = wx.StaticText(self, -1, str(self.tile.getValue()))
             self.label.SetFont(self.font)
             hbox.Add(self.label, 0, wx.ALL|wx.ALIGN_CENTER)
     
@@ -50,7 +51,7 @@ class TileWidget(DraggablePanel):
         #dc.SetPen(wx.Pen('Black', 1, wx.SOLID))
         #dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.SetPen(wx.TRANSPARENT_PEN)
-        dc.SetBrush(wx.Brush(COLORS[self.tile.color]))
+        dc.SetBrush(self.brush)
         w,h = self.GetClientSize()
         dc.DrawRoundedRectangle(0,0,w,h,6)
         if isinstance(self.tile, model.Joker):

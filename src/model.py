@@ -106,6 +106,13 @@ class ModelObject(Publisher):
         must be overriden by subclasses
         """
         return None
+    
+    def getPersistentAttributes(self):
+        result = {}
+        for a in self.__dict__:
+            if a[0].startswith("__"):
+                results[a[0]]=a[1]
+        return result
 
     def getData(self, update=None):
         """
@@ -116,6 +123,7 @@ class ModelObject(Publisher):
         through parameter "update", subclasses can add type specific data
         """
         data = {"type":self.getType()}
+        data.update(self.getPersistentAttributes())
         if update: data.update(update)
         return data
 
@@ -157,31 +165,29 @@ class Tile(ModelObject):
 
     def __init__(self, id, color, value, container):
         super().__init__(None) # Tile instances have no parent for now
-        self.__id__ = id
-        self.value = value
-        self.color = color
-        self.container = container
+        self.__id = id
+        self.__value = value
+        self.__color = color
+        self._container = container
         self.plate = None
         Tile.add(self)
+        
+    def getContainer(self):
+        return self._container
+    
+    def setContainer(self, container):
+        log.trace(self.toString(), ".setContainer(", type(container), ")")
+        self._container = container
 
     def getType(self):
         return "Tile"
 
-    def getData(self):
-        return super().getData({
-            "id": self.__id__,
-            "value": self.value,
-            "color": self.color
-        })
-
     def id(self):
-        return self.__id__
+        return self.__id
 
     def move(self, targetContainer, pos=None):
-        oldContainer = self.container
-        if self.container.moveTile(self, targetContainer, pos):
-            assert oldContainer.containsTile(self) == False
-            assert self.container.containsTile(self) == True
+        oldContainer = self._container
+        if self._container.moveTile(self, targetContainer, pos):
             self.setModified()
             return True
         return False
@@ -195,17 +201,19 @@ class Tile(ModelObject):
         self.plate = None
 
     def toString(self):
-        s = "Tile" + str(self.__id__) + "("
-        s = s + str(self.value) + ","
-        s = s + GameConstants.TILECOLORNAMES[self.color]
+        s = "Tile" + str(self.__id) + "("
+        s = s + str(self.__value) + ","
+        s = s + GameConstants.TILECOLORNAMES[self.__color]
         s = s + ")"
         return s
 
     def getValue(self, *args, **kwargs):
-        return self.value
+        log.trace(type(self),".getValue()")
+        return self.__value
 
     def getColor(self, *args, **kwargs):
-        return self.color
+        log.trace(type(self),".getColor()")
+        return self.__color
 
     def print(self):
         log.trace(self.toString())
@@ -219,8 +227,8 @@ class Joker(Tile):
         try:
             context = kwargs["context"]
         except KeyError as e:
-            if isinstance(self.container, Set): 
-                context = self.container.getTiles()
+            if isinstance(self._container, Set): 
+                context = self._container.getTilesAsDict()
         left,right = (None,None)
         if self in context:
             i = context.index(self)
@@ -257,7 +265,7 @@ class Joker(Tile):
                 return right.getColor()
             elif settype == Set.SETTYPE_GROUP:
                 return GameConstants.NOCOLOR
-        return self.color
+        return super().getColor()
 
     def getValue(self, *args, **kwargs):
         try:
@@ -280,10 +288,10 @@ class Joker(Tile):
                 return right.getValue()-1
             elif settype == Set.SETTYPE_GROUP:
                 return right.getValue()
-        return self.value
+        return super().getValue()
 
     def toString(self):
-        s = "Joker(" + GameConstants.TILECOLORNAMES[self.color] + ")"
+        s = "Joker(" + GameConstants.TILECOLORNAMES[self.getColor()] + ")"
         return s
 
 
@@ -295,32 +303,39 @@ class TileContainer(ModelObject):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.__tiles__ = {}
+        self.__tiles = []
         self.lastTilePosition = 0
 
-    def getData(self, update=None):
-        data = super().getData({"tiles":list(self.__tiles__.keys())})
-        if update: data.update(update)
-        return data
-
     def getTiles(self):
-        if not self.__tiles__: self.__tiles__ = {}
-        return self.__tiles__
+        return self.__tiles
 
+    def getTilesAsDict(self):
+        tiles = {}
+        for tId in self.__tiles:
+            tiles[tId] = Tile.getById(tId)
+        return tiles
+
+    """
+    Obsolete, but kept for compatibility
+    """
     def copyTiles(self):
-        return self.__tiles__.copy()
+        return self.getTilesAsDict()
 
     def getSize(self):
-        return len(self.__tiles__)
+        return len(self.__tiles)
 
     def getTile(self, tileId):
-        return self.__tiles__[tileId]
+        tile = None
+        if tileId in self.__tiles: 
+            tile = Tile.getById(tileId)
+        return tile
 
     def setTile(self, tile):
         tileId = tile.id()
-        self.__tiles__[tileId] = tile
+        if not tileId in self.__tiles:
+            self.__tiles.append(tileId)
         assert self.containsTile(tile)
-        tile.container = self
+        tile.setContainer(self)
         self.setModified()
 
     def containsTile(self, tile):
@@ -331,13 +346,22 @@ class TileContainer(ModelObject):
         Returns: True if a tile with the provided id is contained within this Container,
         False otherwise
         """
-        return tile.id() in self.__tiles__
+        return tile.id() in self.__tiles
+    
+    def __removeTile(self, tile):
+        log.trace(type(self),".__removeTile(",tile.toString(),")")
+        tileId = tile.id()
+        assert self.containsTile(tile)
+        i = self.__tiles.index(tileId)
+        self.__tiles.pop(i)
+        assert self.containsTile(tile)==False
+        
 
     def getTilesSortedByValue(self):
-        return sorted(self.copyTiles().values(), key= lambda tile: tile.value)
+        return sorted(self.getTilesAsDict().values(), key= lambda tile: tile.getValue())
 
     def getTilesGroupedByColor(self):
-        return sorted(self.getTilesSortedByValue(), key= lambda tile: tile.color)
+        return sorted(self.getTilesSortedByValue(), key= lambda tile: tile.getColor())
 
     def addTile(self, tile, pos=None):
         """
@@ -368,18 +392,19 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-#        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
+        log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
         #log.trace("before move:", self.toString())
         tId = tile.id()
         if self.containsTile(tile):
             if targetContainer.addTile(tile, pos)>0:
-                self.__tiles__.pop(tId)
+                #self.__tiles.pop(self.__tiles.index(tId))
+                self.__removeTile(tile)
                 return True
         return False
 
     def findTile(self, value, color):
-        for t in self.getTiles().values():
-            if (t.value==value and t.color==color):
+        for t in self.getTilesAsDict().values():
+            if (t.getValue()==value and t.getColor()==color):
                 return t
 
     def tileFitPosition(self, tile, pos=None):
@@ -406,12 +431,12 @@ class TileContainer(ModelObject):
                     tile.move(self)
 
     def toString(self):
-        groupedByColor = sorted(self.getTiles().values(), key= lambda tile: tile.color)
+        groupedByColor = sorted(self.getTilesAsDict().values(), key= lambda tile: tile.getColor())
         s = str(type(self)) + "(" + str(len(groupedByColor)) + " tiles):"
         currentColor = None
         for tile in groupedByColor:
-            if tile.color != currentColor:
-                currentColor = tile.color
+            if tile.getColor() != currentColor:
+                currentColor = tile.getColor()
                 s = s + "\n" + GameConstants.TILECOLORNAMES[currentColor] + ": "
             s = s + str(tile.getValue()) + " "
         return s
@@ -439,29 +464,27 @@ class Set(TileContainer):
     }
     def __init__(self, parent, pos=None):
         super().__init__(parent)
-        self.order = []
-        self.type = None
-        self.pos = pos  #this is a tuple (x,y) and is the relative position of the set on the board
+        self.__order = []
+        self.__pos = pos  #this is a tuple (x,y) and is the relative position of the set on the board
 
     def getType(self):
         return "Set"
 
-    def getData(self):
-        return super().getData({
-            "order": self.order.copy(),
-            "pos": self.pos
-        })
-
     def load(self, data):
         super().load(data)
         if self.isValidData(data):
-            self.order = self.getDataAttribute(data, "order").copy()
-            self.pos = self.getDataAttribute(data, "pos")
+            self.__order = self.getDataAttribute(data, "order").copy()
+            self.__pos = self.getDataAttribute(data, "pos")
 
-        
+    def getPos(self):
+        return self.__pos
+    
+    def getOrder(self):
+        return self.__order
+    
     def setPos(self, pos):
-        if (self.pos == None) or pos[0] != self.pos[0] or pos[1] != self.pos[1]:
-            self.pos = pos
+        if (self.__pos == None) or pos[0] != self.__pos[0] or pos[1] != self.__pos[1]:
+            self.__pos = pos
             self.setModified()
             log.trace(type(self), ".setPos", pos)
 
@@ -472,12 +495,12 @@ class Set(TileContainer):
         """
         fitPos = TileContainer.addTile(self, tile, pos)
         if pos==None and fitPos>0:
-            if fitPos>len(self.order):
-                self.order.append(tile.id())
+            if fitPos>len(self.__order):
+                self.__order.append(tile.id())
             else:
-                self.order.insert(fitPos-1, tile.id())
+                self.__order.insert(fitPos-1, tile.id())
         elif pos == fitPos:
-            self.order.insert(pos-1, tile.id())
+            self.__order.insert(pos-1, tile.id())
             
         return fitPos
 
@@ -489,20 +512,20 @@ class Set(TileContainer):
         """
         if super().moveTile(tile, targetContainer, pos):
 #            tile.forgetPlate()
-            i = self.order.index(tile.id())
-            self.order.pop(i)
+            i = self.__order.index(tile.id())
+            self.__order.pop(i)
             return True
         return False
 
     def getOrderedTiles(self):
         orderedTiles = []
-        for tId in self.order:
-            if tId in self.__tiles__:
+        for tId in self.__order:
+            if tId in self.getTiles():
                 orderedTiles.append(self.getTile(tId))
             else:
                 log.trace(type(self),".getOrderedTiles(): __tiles__ and order inconsistent")
                 log.trace("__tiles__:", self.toString())
-                log.trace("order:", self.order)
+                log.trace("order:", self.__order)
                 assert False
         log.trace(type(self),".getOrderedTiles() -->", 
             util.collectionToString(orderedTiles, lambda item: item.toString()))
@@ -625,7 +648,7 @@ class Set(TileContainer):
 class Pile(TileContainer):
     def __init__(self, parent):
         super().__init__(parent)
-        self.nextId = 0
+        self.__nextId = 0
         for color in GameConstants.TILECOLORS:
             for value in GameConstants.TILEVALUES:
                 for i in range(2):
@@ -639,20 +662,22 @@ class Pile(TileContainer):
 
     def getData(self):
         return super().getData({
-            "nextId": self.nextId
+            "nextId": self.__nextId
         })
 
     def getNextId(self):
-        nextId = self.nextId
-        self.nextId = self.nextId+1
+        nextId = self.__nextId
+        self.__nextId = self.__nextId+1
         return nextId
 
     def pickTile(self, player):
-        tiles = self.getTiles().items()
+        tiles = self.getTiles()
         n = len(tiles)
         pickedTile = None
         if n>0:
-            pickedTile = self.getTile(random.sample(list(self.getTiles()), 1)[0])
+            pick = random.sample(list(tiles), 1)[0]
+            #log.trace("pick: ", pick)
+            pickedTile = self.getTile(pick)
             log.trace("picked: ", pickedTile.toString())
             pickedTile.move(player.plate)
         return pickedTile
@@ -662,7 +687,7 @@ class Pile(TileContainer):
         """
         super().load(data)
         if self.isValidData(data):
-            self.nextId = self.getDataAttribute(data, "nextId")
+            self.__nextId = self.getDataAttribute(data, "nextId")
         """
 
 
@@ -732,10 +757,13 @@ class Board(TileContainer):
 class Plate(TileContainer):
     def __init__(self, player):
         super().__init__(player)
-        self.player = player
+        self.__player = player
 
     def getType(self):
         return "Plate"
+    
+    def getPlayer(self):
+        return self.__player
 
     def moveTile(self, tile, targetContainer, pos=None):
         if TileContainer.moveTile(self, tile, targetContainer, pos):
@@ -748,20 +776,18 @@ class Player(ModelObject):
     def __init__(self, name, game):
         super().__init__(game)
         self.plate = Plate(self)
-        self.name = name
+        self.__name = name
         self.game = game
 
     def getType(self):
         return "Player"
 
-    def getData(self):
-        return super().getData({
-            "name": self.name
-        })
+    def getName(self):
+        return self.__name
 
     def load(self, data):
         if self.isValidData(data):
-            self.name = self.getDataAttribute(data, "name")
+            self.__name = self.getDataAttribute(data, "name")
             elements = self.getDataElements(data)
             if elements:
                 for e in elements:
@@ -778,7 +804,7 @@ class Player(ModelObject):
         self.game.commitMoves(self)
 
     def toString(self):
-        s =  "player: " + self.name + self.plate.toString()
+        s =  "player: " + self.__name + self.plate.toString()
         return s
 
     def print(self):
@@ -787,49 +813,43 @@ class Player(ModelObject):
 class Game(ModelObject):
     def __init__(self, maxPlayers=4):
         super().__init__()
-        self.players = {}
+        self._players = {}
         self.board = Board(self)
         self.pile = Pile(self)
-        self.maxPlayers = maxPlayers
-        self.currentPlayer = None
+        self.__maxPlayers = maxPlayers
+        self.__currentPlayer = None
 
     def getType(self):
         return "Game"
 
-    def getData(self):
-        return super().getData({
-            "maxPlayers": self.maxPlayers,
-            "currentPlayer": self.currentPlayer
-        })
-
     def addPlayer(self, name):
-        if len(self.players) < self.maxPlayers:
-            self.players[name] = Player(name, self)
+        if len(self._players) < self.__maxPlayers:
+            self._players[name] = Player(name, self)
             self.setModified()
 
     def start(self, player):
-        self.currentPlayer = player.name
-        for p in self.players.values():
+        self.__currentPlayer = player.getName()
+        for p in self._players.values():
             for i in range(15):
                 p.pickTile()
 
     def getPlayer(self, name):
         player = None
-        if name and name in self.players:
-            player = self.players[name]
+        if name and name in self._players:
+            player = self._players[name]
         log.trace(type(self), ".getPlayer(", name, ") --> ", player)
         return player
 
     def getCurrentPlayer(self):
-        if self.currentPlayer:
-            return self.getPlayer(self.currentPlayer)
+        if self.__currentPlayer:
+            return self.getPlayer(self.__currentPlayer)
         log.trace(type(self), ".getCurrentPlayer() --> None")
         return None
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
-        log.trace(type(self),".commitMoves(",player.name,")")
-        if player.name == self.currentPlayer and player.getParent() == self:
+        log.trace(type(self),".commitMoves(",player.getName(),")")
+        if player.getName() == self.__currentPlayer and player.getParent() == self:
             # clean the board with validation
             self.board.cleanUp(True)
             # recursively clear the modified flag of all ModelObject instances under Game
@@ -837,8 +857,8 @@ class Game(ModelObject):
 
     def load(self, data):
         if self.isValidData(data):
-            self.maxPlayers = self.getDataAttribute(data, "maxPlayers")
-            self.currentPlayer = self.getDataAttribute(data, "currentPlayer")
+            self.__maxPlayers = self.getDataAttribute(data, "maxPlayers")
+            self.__currentPlayer = self.getDataAttribute(data, "currentPlayer")
             elements = self.getDataElements(data)
             if elements:
                 for e in elements:
@@ -851,9 +871,9 @@ class Game(ModelObject):
 
 
     def toString(self):
-        s = "\ngame(" + str(len(self.players)) + " players):\n"
-        for name in self.players:
-            s = s + self.players[name].toString()
+        s = "\ngame(" + str(len(self._players)) + " players):\n"
+        for name in self._players:
+            s = s + self._players[name].toString()
         s = s + "\npile: " + self.pile.toString()
         s = s + "\nboard: " + self.board.toString()
         return s

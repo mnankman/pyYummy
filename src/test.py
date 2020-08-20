@@ -11,6 +11,9 @@ class ModelTestMethods(unittest.TestCase):
     def setUp(self):
         MessageQueue.getInstance(True)
         self.root = ModelObject()
+    
+    def tearDown(self):
+        MessageQueue.reset(True)
         
 
     def test_AddTilesToSet(self):
@@ -142,6 +145,11 @@ class GameTestMethods(unittest.TestCase):
         self.joe = self.game.getPlayer("Joe")
         self.assertIsNotNone(self.joe)
         self.game.start(self.joe)
+        print(self.game.toString())
+        
+    def tearDown(self):
+        MessageQueue.reset(True)
+        del self.game
 
     def test_MoveTileFromPileToBoard(self):
         pileSizeBefore = self.game.pile.getSize()
@@ -164,7 +172,7 @@ class GameTestMethods(unittest.TestCase):
 
     def test_BoardCleanUp(self):
         for tId in self.joe.plate.getTiles():
-            t = self.joe.plate.getTiles()[tId]
+            t = self.joe.plate.getTile(tId)
             t.move(self.game.board)
             self.assertEqual(len(self.game.board.sets), 1)
             self.game.board.cleanUp()
@@ -187,7 +195,7 @@ class GameTestMethods(unittest.TestCase):
             self.assertIsNotNone(tile)
             if not set:
                 tile.move(self.game.board)
-                set = tile.container
+                set = tile.getContainer()
             else:
                 tile.move(set)
         self.assertEqual(set.getSize(), 3)
@@ -201,7 +209,7 @@ class GameTestMethods(unittest.TestCase):
             self.assertIsNotNone(tile)
             if not set:
                 tile.move(self.game.board)
-                set = tile.container
+                set = tile.getContainer()
             else:
                 tile.move(set)
         self.assertEqual(set.getSize(), 2)
@@ -235,11 +243,5 @@ class GameTestMethods(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    #log.setVerbosity(Log.VERBOSITY_NONE)
-    try:
-        loop.run_until_complete(unittest.main())
-    finally:    
-        loop.stop()
-        loop.close()
+    unittest.main()
     

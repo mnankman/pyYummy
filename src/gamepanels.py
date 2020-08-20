@@ -32,7 +32,7 @@ class BoardPanel(wx.Panel):
         for tsw in tileSetWidgets:
             sx,sy,sw,sh = tsw.GetRect()
             xOffset = 3
-            for tId in tsw.set.order:
+            for tId in tsw.set.getOrder():
                 tw = self.parent.findTileWidgetById(tId)
                 if tw and not(tw.isBeingDragged()):
                     w,h = tw.GetSize()
@@ -63,7 +63,7 @@ class BoardPanel(wx.Panel):
                 tileSetWidget = TileSetWidget(self, set)
                 w,h = TileWidget.defaultSize()
                 tileSetWidget.SetSize((w+6,h+10))
-                tileSetWidget.setPos(set.pos)
+                tileSetWidget.setPos(set.getPos())
 
     def cleanUpSets(self):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
@@ -92,7 +92,7 @@ class BoardPanel(wx.Panel):
         tileSetWidget = TileSetWidget(self, set)
         w,h = TileWidget.defaultSize()
         tileSetWidget.SetSize((w+6,h+10))
-        tileSetWidget.setPos(pos if pos else set.pos)
+        tileSetWidget.setPos(pos if pos else set.getPos())
 
     def onTileRelease(self, event):
         log.trace(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
@@ -106,7 +106,7 @@ class BoardPanel(wx.Panel):
             #move the tile to the board, this will result in a new instance of model.Set containing the tile:
             tile.move(self.board) 
             #tile.container is an instance of model.Set, set the position on the board:
-            tile.container.setPos((x-3,y-4))
+            tile.getContainer().setPos((x-3,y-4))
         event.obj.Raise()
         self.Refresh()
 
@@ -154,7 +154,7 @@ class GamePanel(wx.Panel):
         if self.game.getCurrentPlayer():
             plate = self.game.getCurrentPlayer().plate
             if self.sortMethod==0:
-                return plate.getTiles().values()
+                return plate.getTilesAsDict().values()
             elif self.sortMethod==1:
                 return plate.getTilesSortedByValue()
             else:
@@ -175,8 +175,8 @@ class GamePanel(wx.Panel):
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
         for set in self.game.board.sets:
-            sx, sy = set.pos 
-            setTiles = set.order
+            sx, sy = set.getPos() 
+            setTiles = set.getOrder()
             for tId in setTiles:
                 tx, ty = (sx+2, sy+3)
                 tileWidget = self.findTileWidgetById(tId)
