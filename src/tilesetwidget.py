@@ -95,7 +95,8 @@ class TileSetWidget(draggable.DraggablePanel):
       
 
     def onTileHover(self, event):
-        if util.rectsOverlap(event.obj.GetRect(), self.GetRect()):
+        tile = event.obj.tile
+        if util.rectsOverlap(event.obj.GetRect(), self.GetRect()) and self.set.tileFitPosition(tile)>0:
             self.highlight = True
             self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         else:
