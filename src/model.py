@@ -1,6 +1,7 @@
-from pubsub import Publisher
 import random
 import util
+from pubsub import Publisher
+from modelobject import ModelObject
 
 from log import Log
 log = Log()
@@ -16,196 +17,6 @@ class GameConstants:
     TILECOLORNAMES = ["black", "blue", "red", "orange"]
     MAXTILEVALUE = 13
     TILEVALUES = range(1,MAXTILEVALUE+1)
-
-class ModelObject(Publisher):
-    EVENTS = ["msg_object_modified", "msg_new_child"]
-    """
-    This is the base class for all the other model classes. It implements the object 
-    hierarchy and the model modification status. It extends Publisher to allow Subscriber 
-    instances to be notified about the modification state.  
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(ModelObject.EVENTS)
-        self.__modified__ = False
-        self.__children__ = []
-        self.__persistent__ = []
-        self.__parent__ = None
-        if parent:
-            assert isinstance(parent, ModelObject)
-            self.__parent__ = parent
-            parent.addChild(self)
-
-    def setModified(self):
-        self.__modified__ = True
-        self.dispatch("msg_object_modified", {"object": self} )
-
-    def clearModified(self, recursive=False):
-        self.__modified__ = False
-        if recursive:
-            for c in self.getChildren():
-                c.clearModified(recursive)
-        log.trace(type(self), ".clearModified(", recursive, ") --> ", self.__modified__)
-
-    def getParent(self):
-        return self.__parent__
-    
-    def isValidChild(self, child):
-        valid = False
-        if child and isinstance(child, ModelObject):
-            valid = child in self.__children__ and child.getParent() == self
-        return valid
-
-    def getChildren(self):
-        if not self.__children__: self.__children = []
-        return self.__children__
-
-    def addChild(self, childObject):
-        assert isinstance(childObject, ModelObject)
-        self.getChildren().append(childObject)
-        assert self.isValidChild(childObject) == True
-        self.dispatch("msg_new_child", {"object": self, "child": childObject})
-        childObject.subscribe(self, "msg_object_modified", self.onMsgChildObjectModified)
-        self.setModified()
-
-    def onMsgChildObjectModified(self, payload):
-        self.dispatch("msg_object_modified", {"object": self, "modified": payload})
-
-    def isModified(self, recursive=False):
-        if not self.__modified__ and recursive:
-            return self.isChildModified(recursive)
-        else:
-            return self.__modified__
-
-    def isChildModified(self, recursive=False):
-        for c in self.getChildren():
-            if recursive:
-                return c.isModified(recursive)
-
-    def getModifiedObjects(self):
-        modified = []
-        if self.__modified__:
-            modified.append(self)
-        for c in self.getChildren():
-            modified = modified + c.getModifiedObjects()
-        return modified
-
-    def saveToDict(self):
-        data = self.getData()
-        for c in self.getChildren():
-            childdata = c.saveToDict()
-            if childdata and childdata["type"]:
-                childtype = childdata["type"]
-                if not "elements" in data:
-                    data["elements"] = []
-                data["elements"].append(childdata)
-        return data
-
-    def getType(self):
-        """
-        returns the type name for this ModelObject
-        """
-        return type(self).__name__
-    
-    def persist(self, persistentAttrName):
-        self.__persistent__.append((type(self).__name__, persistentAttrName))
-    
-       
-    def getPersistentAttributes(self):
-        result = {}
-        for pa in self.__persistent__:
-            className = pa[0]
-            attrName = pa[1]
-            names = ["_"+className+"__"+attrName]
-            for base in self.__class__.__bases__:
-                names.append("_"+base.__name__+"__"+attrName)
-            for nm in names:
-                if nm in self.__dict__:
-                    result[attrName] = self.__dict__[nm]
-        log.trace("\n\n", type(self), ".getPersistentAttributes() -->", result, "\n\n")
-        return result
-
-    def getData(self, update=None):
-        """
-        must be overriden by subclasses
-        it should return a dict with the following structure:
-        {"type": "<type of the object>", "attr1": "<value of attr1>, ...}
-        the type name is mandatory and is obtained by calling self.getType()
-        through parameter "update", subclasses can add type specific data
-        """
-        data = {"type":self.getType()}
-        data.update(self.getPersistentAttributes())
-        if update: data.update(update)
-        return data
-
-    def isValidData(self, data):
-        if data!=None and "type" in data and data["type"] == self.getType():
-            log.trace(type(self),".isValidData(",data,")")
-            return True
-        return False
-
-    def getDataType(self, data):
-        if "type" in data: return data["type"]
-        return None
-
-    def getDataElements(self, data):
-        if "elements" in data: return data["elements"]
-        return None
-
-    def getDataAttribute(self, data, attribute):
-        if attribute in data: return data[attribute]
-        return None
-    
-    def setDataAttributes(self, data):
-        log.trace(type(self), ".setDataAttributes(", data, ")")
-        className = self.getDataType(data)
-        for item in data:
-            if not item in ["type", "elements"]:
-                attrValue = data[item]
-                names = ["_"+className+"__"+item]
-                for base in self.__class__.__bases__:
-                    names.append("_"+base.__name__+"__"+item)
-                for nm in names:
-                    setterName = "set"+util.upperFirst(item)
-                    if hasattr(type(self), setterName):
-                        setter = getattr(type(self), setterName)
-                        log.trace(setter, "(", attrValue, ")")
-                        setter(self, attrValue)
-                    else:
-                        if hasattr(self, nm):
-                            log.trace("set: ", nm, " = ", attrValue)
-                            setattr(self, nm, attrValue)
-                        else:
-                            log.trace(className, "does not have an attribute named:" + item, 
-                                "\n\n", type(self), ".__dict__", self.__dict__, "\n\n")
-            
-    def loadFromDict(self, data):
-        log.trace("\n\n",type(self), ".loadFromDict(", data, ")")
-        if self.isValidData(data):
-            self.setDataAttributes(data)
-            elements = self.getDataElements(data)
-            if elements:
-                for e in elements:
-                    className = self.getDataType(data)
-                    elementName = self.getDataType(e)
-                    elementGetterName = "get"+self.getDataType(e)
-                    elementAdderName = "add"+self.getDataType(e)
-                    if hasattr(type(self), elementGetterName):
-                        getElement = getattr(type(self), elementGetterName)
-                        element = getElement(self)
-                        assert isinstance(element, ModelObject)
-                        element.loadFromDict(e)
-                    elif hasattr(type(self), elementAdderName):
-                        addElement = getattr(type(self), elementAdderName)
-                        element = addElement(self)
-                        assert isinstance(element, ModelObject)
-                        element.loadFromDict(e)
-                    else:
-                        log.trace("no getter or creator method found for element", 
-                                  className + "." + elementName, 
-                                  "\n\n", type(self), ".__dict__", type(self).__dict__, "\n\n")
-
-
 
 class Tile(ModelObject):
     __tiles__ = {}
@@ -938,7 +749,7 @@ class Model(Publisher):
         if self.currentGame:
             del self.currentGame
         self.currentGame = Game(0)
-        self.currentGame.loadFromDict(data)
+        self.currentGame.deserialize(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):

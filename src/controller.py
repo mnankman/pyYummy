@@ -18,7 +18,7 @@ class Controller:
         self.model.start(player)
 
     def saveGame(self, path):
-        self.saved = json.dumps(self.model.getCurrentGame().saveToDict())
+        self.saved = json.dumps(self.model.getCurrentGame().serialize())
         f=open(path,"w")
         f.write(self.saved)
         f.close()
