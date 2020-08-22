@@ -9,6 +9,7 @@ log.setVerbosity(Log.VERBOSITY_VERBOSE)
 class ModelTestMethods(unittest.TestCase):
 
     def setUp(self):
+        Tile.init()
         MessageQueue.getInstance(True)
         self.root = ModelObject()
     

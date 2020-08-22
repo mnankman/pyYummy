@@ -25,6 +25,11 @@ class ModelObject(PersistentObject, Publisher):
             self.__parent__ = parent
             parent.addChild(self)
 
+    def __del__(self):
+        log.trace(type(self),".__del__()")
+        for c in self.getChildren():
+            del c
+
     def setModified(self):
         self.__modified__ = True
         self.dispatch("msg_object_modified", {"object": self} )

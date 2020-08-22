@@ -20,13 +20,16 @@ class GameConstants:
 
 class Tile(ModelObject):
     __tiles__ = {}
-
+    """
     def create(id, color, value, container):
         if not id in __tiles__:
             tile = Tile(id, color, value, container)
             Tile.__tiles__[id] = tile
             return tile
         return None
+    """
+    def init():
+       Tile.__tiles__ = {}
 
     def add(tile):
         if not tile.id() in Tile.__tiles__: Tile.__tiles__[tile.id()] = tile
@@ -661,6 +664,7 @@ class Player(ModelObject):
 class Game(ModelObject):
     def __init__(self, maxPlayers=4):
         super().__init__()
+        Tile.init()
         self._players = []
         self.board = Board(self)
         self.pile = Pile(self)
