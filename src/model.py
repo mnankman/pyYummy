@@ -18,35 +18,65 @@ class GameConstants:
     MAXTILEVALUE = 13
     TILEVALUES = range(1,MAXTILEVALUE+1)
 
-class Tile(ModelObject):
-    __tiles__ = {}
-    """
-    def create(id, color, value, container):
-        if not id in __tiles__:
-            tile = Tile(id, color, value, container)
-            Tile.__tiles__[id] = tile
-            return tile
-        return None
-    """
+class TileFactory:
+    __instance__ = None
+    
+    def getInstance():
+        if TileFactory.__instance__ == None: 
+            TileFactory.init()
+        return TileFactory.__instance__
+
     def init():
-       Tile.__tiles__ = {}
+        if TileFactory.__instance__:
+            del TileFactory.__instance__
+        TileFactory.__instance__ = TileFactory.__TileFactory__()
 
-    def add(tile):
-        if not tile.id() in Tile.__tiles__: Tile.__tiles__[tile.id()] = tile
+    class __TileFactory__:
 
-    def getById(id):
-        return Tile.__tiles__[id]
+        def __init__(self):
+            self.__tiles__ = {}
 
-    def __init__(self, id, color, value, container):
+        def createTile(self, tId, color, value, container):
+            if not tId in self.__tiles__:
+                tile = Tile(tId, color, value, container, self)
+                self.__tiles__[tId] = tile
+                return tile
+            return None
+
+        def createJoker(self, tId, color, container):
+            if not tId in self.__tiles__:
+                tile = Joker(tId, color, container, self)
+                self.__tiles__[tId] = tile
+                return tile
+            return None
+
+        def add(self, tile):
+            assert isinstance(tile, Tile)
+            if not tile.id() in self.__tiles__: 
+                self.__tiles__[tile.id()] = tile
+
+        def getById(self, tId):
+            return self.__tiles__[tId]
+
+class Tile(ModelObject):
+
+    def create(tId, color, value, container):
+        return TileFactory.getInstance().createTile(tId, color, value, container)
+
+    def getById(tId):
+        return TileFactory.getInstance().getById(tId)
+
+    def __init__(self, tId, color, value, container, factory):
+        assert isinstance(factory, TileFactory.__TileFactory__)
+        assert TileFactory.getInstance() == factory
         super().__init__(None) # Tile instances have no parent for now
-        self.__id = id
+        self.__id = tId
         self.__value = value
         self.__color = color
         self.persist("value")
         self.persist("color")
         self._container = container
         self.plate = None
-        Tile.add(self)
         
     def getContainer(self):
         return self._container
@@ -90,8 +120,11 @@ class Tile(ModelObject):
         log.trace(self.toString())
 
 class Joker(Tile):
-    def __init__(self, id, color, container):
-        super().__init__(id, color, 0, container)
+    def create(tId, color, container):
+        return TileFactory.getInstance().createJoker(tId, color, container)
+
+    def __init__(self, id, color, container, factory):
+        super().__init__(id, color, 0, container, factory)
 
     def getNeighbours(self, *args, **kwargs):
         context = []
@@ -535,10 +568,10 @@ class Pile(TileContainer):
         for color in GameConstants.TILECOLORS:
             for value in GameConstants.TILEVALUES:
                 for i in range(2):
-                    t = Tile(self.getNextId(), color, value, self)
+                    t = Tile.create(self.getNextId(), color, value, self)
                     TileContainer.addTile(self, t)
-        TileContainer.addTile(self, Joker(self.getNextId(), GameConstants.BLACK, self))
-        TileContainer.addTile(self, Joker(self.getNextId(), GameConstants.RED, self))
+        TileContainer.addTile(self, Joker.create(self.getNextId(), GameConstants.BLACK, self))
+        TileContainer.addTile(self, Joker.create(self.getNextId(), GameConstants.RED, self))
 
     def getNextId(self):
         nextId = self.__nextId
@@ -664,7 +697,7 @@ class Player(ModelObject):
 class Game(ModelObject):
     def __init__(self, maxPlayers=4):
         super().__init__()
-        Tile.init()
+        TileFactory.init() 
         self._players = []
         self.board = Board(self)
         self.pile = Pile(self)

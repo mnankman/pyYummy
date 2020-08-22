@@ -26,7 +26,7 @@ class ModelObject(PersistentObject, Publisher):
             parent.addChild(self)
 
     def __del__(self):
-        log.trace(type(self),".__del__()")
+        #log.trace(type(self),".__del__()")
         for c in self.getChildren():
             del c
 
