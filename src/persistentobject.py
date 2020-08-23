@@ -26,7 +26,7 @@ class PersistentObject:
             for nm in names:
                 if nm in self.__dict__:
                     result[attrName] = self.__dict__[nm]
-        log.trace("\n\n", type(self), ".getPersistentAttributes() -->", result, "\n\n")
+        #log.trace("\n\n", type(self), ".getPersistentAttributes() -->", result, "\n\n")
         return result
         
     def getType(self):
@@ -63,7 +63,7 @@ class PersistentObject:
         return None
     
     def setDataAttributes(self, data):
-        log.trace(type(self), ".setDataAttributes(", data, ")")
+        log.debug(function=self.setDataAttributes, args=data)
         className = self.getDataType(data)
         for item in data:
             if not item in ["type", "elements"]:
@@ -79,7 +79,7 @@ class PersistentObject:
                         setter(self, attrValue)
                     else:
                         if hasattr(self, nm):
-                            log.trace("set: ", nm, " = ", attrValue)
+                            #log.trace("set: ", nm, " = ", attrValue)
                             setattr(self, nm, attrValue)
                         else:
                             log.trace(className, "does not have an attribute named:" + item, 
@@ -90,7 +90,7 @@ class PersistentObject:
         if not "elements" in d:
             d["elements"] = []
         d["elements"].append(elementData)
-        log.trace(type(self),".addNestedElement", (data, elementData), " --> ", d)
+        #log.trace(type(self),".addNestedElement", (data, elementData), " --> ", d)
         return d
 
     def serialize(self):
@@ -99,7 +99,7 @@ class PersistentObject:
         return data
 
     def deserialize(self, data):
-        log.trace("\n\n",type(self), ".deserialize(", data, ")")
+        log.debug(function=self.desreialize, args=data)
         if self.isValidData(data):
             self.setDataAttributes(data)
             elements = self.getDataElements(data)
@@ -120,7 +120,7 @@ class PersistentObject:
                         assert isinstance(element, PersistentObject)
                         element.deserialize(e)
                     else:
-                        log.trace("no getter or creator method found for element", 
+                        log.error("no getter or creator method found for element", 
                                   className + "." + elementName, 
                                   "\n\n", type(self), ".__dict__", type(self).__dict__, "\n\n")
 

@@ -14,7 +14,7 @@ import util
 
 from log import Log
 log = Log()
-log.setVerbosity(Log.VERBOSITY_VERBOSE)
+log.setVerbosity(Log.VERBOSITY_DEBUG)
 
 RESOURCES="src/resource"
 

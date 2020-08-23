@@ -82,7 +82,7 @@ class Tile(ModelObject):
         return self._container
     
     def setContainer(self, container):
-        #log.trace(self.toString(), ".setContainer(", type(container), ")")
+        #log.debug(self.toString(), ".setContainer(", type(container), ")")
         self._container = container
 
     def id(self):
@@ -141,7 +141,7 @@ class Joker(Tile):
             if i<len(context)-1:
                 right = context[i+1]
         """        
-        log.trace(
+        log.debug(
             type(self), 
             ".getNeighbours(", 
             util.collectionToString(context, lambda item: item.toString() if item and isinstance(item, Tile) else str(item)), 
@@ -264,7 +264,7 @@ class TileContainer(ModelObject):
         return tile.id() in self.__tiles
     
     def __removeTile(self, tile):
-        log.trace(type(self),".__removeTile(",tile.toString(),")")
+        log.debug(type(self),".__removeTile(",tile.toString(),")")
         tileId = tile.id()
         assert self.containsTile(tile)
         i = self.__tiles.index(tileId)
@@ -289,7 +289,7 @@ class TileContainer(ModelObject):
         not be added to the container. 
         """
         fitPos = self.tileFitPosition(tile, pos)
-        #log.trace(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
+        #log.debug(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
         if fitPos>0:
             self.setTile(tile)
             self.lastTilePosition = fitPos
@@ -307,8 +307,8 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        #log.trace(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
-        #log.trace("before move:", self.toString())
+        #log.debug(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
+        #log.debug("before move:", self.toString())
         tId = tile.id()
         if self.containsTile(tile):
             if targetContainer.addTile(tile, pos)>0:
@@ -401,7 +401,7 @@ class Set(TileContainer):
         if (self.__pos == None) or pos[0] != self.__pos[0] or pos[1] != self.__pos[1]:
             self.__pos = pos
             self.setModified()
-            log.trace(type(self), ".setPos", pos)
+            log.debug(type(self), ".setPos", pos)
 
     def addTile(self, tile, pos=None):
         """
@@ -438,11 +438,11 @@ class Set(TileContainer):
             if tId in self.getTiles():
                 orderedTiles.append(self.getTile(tId))
             else:
-                log.trace(type(self),".getOrderedTiles(): __tiles__ and order inconsistent")
-                log.trace("__tiles__:", self.toString())
-                log.trace("order:", self.__order)
+                log.debug(type(self),".getOrderedTiles(): __tiles__ and order inconsistent")
+                log.debug("__tiles__:", self.toString())
+                log.debug("order:", self.__order)
                 assert False
-        log.trace(type(self),".getOrderedTiles() -->", 
+        log.debug(type(self),".getOrderedTiles() -->", 
             util.collectionToString(orderedTiles, lambda item: item.toString()))
         return orderedTiles
 
@@ -463,7 +463,7 @@ class Set(TileContainer):
                     largestDiff = diff
                 if diff<smallestDiff:
                     smallestDiff = diff
-        log.trace(type(self), ".isValidRun(", util.collectionToString(tiles, lambda item: str(item.getValue(context=tiles, settype = Set.SETTYPE_RUN))), ") --> ", (largestDiff,smallestDiff))
+        log.debug(type(self), ".isValidRun(", util.collectionToString(tiles, lambda item: str(item.getValue(context=tiles, settype = Set.SETTYPE_RUN))), ") --> ", (largestDiff,smallestDiff))
         return (largestDiff==1 and smallestDiff==1)
 
     def getSetType(self, tiles):
@@ -502,7 +502,7 @@ class Set(TileContainer):
         DV = len(distinctvalues)    #number of distinct values in the set
         DC = len(distinctcolors)    #number of distinct colors in the set
         containsjoker = jokers>0
-        log.trace("N=",N,"DV=",DV,"DC=",DC,"jokers=",jokers)
+        log.debug("N=",N,"DV=",DV,"DC=",DC,"jokers=",jokers)
 
         #the initial assumption is that the set is invalid
         settype = Set.SETTYPE_INVALID
@@ -521,7 +521,7 @@ class Set(TileContainer):
                 #now we are certain this is a valid group
                 settype = Set.SETTYPE_GROUP
             
-        log.trace(
+        log.debug(
             type(self), 
             ".getSetType(", 
             util.collectionToString(
@@ -584,9 +584,9 @@ class Pile(TileContainer):
         pickedTile = None
         if n>0:
             pick = random.sample(list(tiles), 1)[0]
-            #log.trace("pick: ", pick)
+            #log.debug("pick: ", pick)
             pickedTile = self.getTile(pick)
-            log.trace("picked: ", pickedTile.toString())
+            log.debug("picked: ", pickedTile.toString())
             pickedTile.move(player.plate)
         return pickedTile
 
@@ -600,9 +600,19 @@ class Board(TileContainer):
         set = Set(self)
         self.sets.append(set)
         return set
+
+    def validateSets(self):
+        log.debug("", function = self.validateSets)
+        invalid = 0
+        for s in self.sets:
+            if not s.isEmpty():
+                if not s.isValid():
+                    invalid += 1
+        return invalid
+
         
     def cleanUp(self, validateSets=True):
-        log.trace(type(self),".cleanUp(validateSets=",validateSets,")")
+        log.debug(type(self),".cleanUp(validateSets=",validateSets,")")
         #cleanup unfinished and invalid sets
         for s in self.sets:
             if not s.isEmpty():
@@ -701,6 +711,7 @@ class Game(ModelObject):
         self._players = []
         self.board = Board(self)
         self.pile = Pile(self)
+        self.lastValidState = None
         self.__maxPlayers = maxPlayers
         self.__currentPlayer = None
         self.persist("maxPlayers")
@@ -725,11 +736,17 @@ class Game(ModelObject):
                 self._players.append(Player(self, name))
                 self.setModified()
 
+    def rememberState(self, data=None):
+        if not data: 
+            data = self.serialize()
+        self.lastValidState = data
+
     def start(self, player):
         self.__currentPlayer = player.getName()
         for p in self._players:
             for i in range(14):
                 p.pickTile()
+        self.rememberState()
 
     def getPlayerByName(self, name):
         player = None
@@ -737,23 +754,28 @@ class Game(ModelObject):
             if p.getName() == name:
                 player = p
                 break
-        #log.trace(type(self), ".getPlayerByName(", name, ") --> ", player)
+        #log.debug(type(self), ".getPlayerByName(", name, ") --> ", player)
         return player
 
     def getCurrentPlayer(self):
         if self.__currentPlayer:
             return self.getPlayerByName(self.__currentPlayer)
-        log.trace(type(self), ".getCurrentPlayer() --> None")
+        log.error(type(self), ".getCurrentPlayer() --> None")
         return None
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
-        log.trace(type(self),".commitMoves(",player.getName(),")")
+        log.debug(type(self),".commitMoves(",player.getName(),")")
         if player.getName() == self.__currentPlayer and player.getParent() == self:
-            # clean the board with validation
-            self.board.cleanUp(True)
-            # recursively clear the modified flag of all ModelObject instances under Game
-            self.clearModified(True) 
+            if self.board.validateSets()>1:
+                if self.lastValidState:
+                    self.deserialize(self.lastValidState)
+            else:
+                # clean the board with validation
+                self.board.cleanUp(True)
+                # recursively clear the modified flag of all ModelObject instances under Game
+                self.clearModified(True) 
+                self.rememberState()
 
     def toString(self):
         s = "\ngame(" + str(len(self._players)) + " players):\n"
@@ -787,6 +809,7 @@ class Model(Publisher):
             del self.currentGame
         self.currentGame = Game(0)
         self.currentGame.deserialize(data)
+        self.currentGame.rememberState(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):

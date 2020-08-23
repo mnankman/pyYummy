@@ -71,12 +71,12 @@ class BoardPanel(wx.Panel):
                 tileSetWidget.Destroy()
 
     def findTileSetWidgetByOverlap(self, rect):
-        children = self.GetChildren()
         result = None
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             if util.rectsOverlap(rect,tileSetWidget.GetRect()):
                 result = tileSetWidget
                 break
+        log.debug("", function=self.findTileSetWidgetByOverlap, args=(rect,), returns=result)
         return result
 
     def triggerTileSetWidgets(self, event):
@@ -95,14 +95,15 @@ class BoardPanel(wx.Panel):
         tileSetWidget.setPos(pos if pos else set.getPos())
 
     def onTileRelease(self, event):
-        log.trace(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
+        log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
         x,y = event.pos
+        tx,ty,tw,th = event.obj.GetRect()
         tile = event.obj.tile
-        tileSetWidget = self.findTileSetWidgetByOverlap(event.obj.GetRect())
+        tileSetWidget = self.findTileSetWidgetByOverlap((x,y,tw,th))
         if tileSetWidget:
             tileSetWidget.onTileRelease(event)
         else:
-            log.trace ("released on board:", (x,y), event.obj.tile.toString())
+            log.debug ("released on board:", (x,y), event.obj.tile.toString())
             #move the tile to the board, this will result in a new instance of model.Set containing the tile:
             tile.move(self.board) 
             #tile.container is an instance of model.Set, set the position on the board:
@@ -111,7 +112,7 @@ class BoardPanel(wx.Panel):
         self.Refresh()
 
     def onMsgBoardNewChild(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         if payload["object"] == self.board and payload["child"] != None:
             self.addTileSetWidget(payload["child"])
 
@@ -222,30 +223,30 @@ class GamePanel(wx.Panel):
         self.Refresh()
 
     def onMsgNewGame(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         game = payload["game"]
         if game:
             self.reset(game)
             
     def onMsgNewPlayer(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         player = payload["player"]
         if player:
             player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
             self.refresh()
 
     def onMsgGameLoaded(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         game = payload["game"]
         if game:
             self.reset(game)
 
     def onMsgGameModified(self, payload):
         if not "modified" in payload: #only process modifications of game object, not of its children
-            log.trace(type(self),"received",payload)
+            log.debug(type(self),"received",payload)
             self.refresh()
 
     def onMsgPlayerModified(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         self.refresh()
 
