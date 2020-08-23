@@ -39,7 +39,7 @@ class ModelObject(PersistentObject, Publisher):
         if recursive:
             for c in self.getChildren():
                 c.clearModified(recursive)
-        log.trace(type(self), ".clearModified(", recursive, ") --> ", self.__modified__)
+        log.debug(type(self), ".clearModified(", recursive, ") --> ", self.__modified__)
 
     def getParent(self):
         return self.__parent__

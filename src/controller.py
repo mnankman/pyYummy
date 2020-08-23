@@ -1,5 +1,8 @@
 from model import *
+from log import Log
 import json
+
+log = Log()
 
 class Controller:
     def __init__(self):
@@ -45,7 +48,6 @@ class Controller:
         return self.model.getPlayer(name)
 
     def pick(self):
-        log.trace(type(self),",pick()")
         player = self.getCurrentPlayer()
         if player:
             player.pickTile()

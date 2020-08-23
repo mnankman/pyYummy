@@ -740,8 +740,10 @@ class Game(ModelObject):
         if not data: 
             data = self.serialize()
         self.lastValidState = data
+        log.trace("lastValidState =", self.lastValidState, function=self.rememberState)
 
     def start(self, player):
+        log.trace(function=self.start, args=player)
         self.__currentPlayer = player.getName()
         for p in self._players:
             for i in range(14):
@@ -765,7 +767,7 @@ class Game(ModelObject):
 
     def commitMoves(self, player):
         assert isinstance(player, Player)
-        log.debug(type(self),".commitMoves(",player.getName(),")")
+        log.trace(type(self),".commitMoves(",player.getName(),")")
         if player.getName() == self.__currentPlayer and player.getParent() == self:
             if self.board.validateSets()>1:
                 if self.lastValidState:
@@ -796,6 +798,7 @@ class Model(Publisher):
         super().__init__(Model.EVENTS)
 
     def newGame(self, n):
+        log.trace(function=self.newGame, args=n)
         if self.currentGame:
             del self.currentGame
         self.currentGame = Game(n)
@@ -805,6 +808,7 @@ class Model(Publisher):
         self.currentGame.start(player)
 
     def loadGame(self, data):
+        log.trace(function=self.loadGame, args=data)
         if self.currentGame:
             del self.currentGame
         self.currentGame = Game(0)
@@ -813,6 +817,7 @@ class Model(Publisher):
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):
+        log.trace(function=self.addPlayer, args=name)
         if self.currentGame:
             self.currentGame.addPlayerByName(name)
             self.dispatch("msg_new_player", {"game": self.currentGame, "player": self.currentGame.getPlayerByName(name)})

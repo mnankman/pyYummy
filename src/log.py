@@ -39,6 +39,7 @@ class Log:
 
         def setVerbosity(self, verbosity):
             self.verbosity = verbosity
+            self.trace(function=self.setVerbosity, args=(verbosity,))
 
     instance = None
     def __init__(self):
@@ -46,10 +47,12 @@ class Log:
             Log.instance = Log.__Log(Log.VERBOSITY_NONE)
     
     def debug(self, *args, **kwargs):
-        self.trace(*args, **kwargs)
+        if Log.instance:
+            Log.instance.debug(*args, **kwargs)
 
     def error(self, *args, **kwargs):
-        self.trace(*args, **kwargs)
+        if Log.instance:
+            Log.instance.error(*args, **kwargs)
 
     def trace(self, *args, **kwargs):
         if Log.instance:

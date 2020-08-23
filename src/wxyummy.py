@@ -14,7 +14,7 @@ import util
 
 from log import Log
 log = Log()
-log.setVerbosity(Log.VERBOSITY_DEBUG)
+log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
 RESOURCES="src/resource"
 
@@ -114,7 +114,7 @@ class MainWindow(wx.Frame):
         self.Bind(event=wx.EVT_MENU, handler=self.onUserShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
 
     def onMsgNewPlayer(self, payload):
-        log.trace(type(self),"received",payload)
+        log.debug(type(self),"received",payload)
         player = payload["player"]
         if player:
             self.controller.start(player)
