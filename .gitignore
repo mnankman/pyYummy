@@ -10,3 +10,15 @@ src/__pycache__/test.cpython-38.pyc
 src/__pycache__/tilesetwidget.cpython-38.pyc
 src/__pycache__/tilewidget.cpython-38.pyc
 src/__pycache__/util.cpython-38.pyc
+src/__pycache__/controller.cpython-38.pyc
+src/__pycache__/draggable.cpython-38.pyc
+src/__pycache__/gamepanels.cpython-38.pyc
+src/__pycache__/log.cpython-38.pyc
+src/__pycache__/model.cpython-38.pyc
+src/__pycache__/modelobject.cpython-38.pyc
+src/__pycache__/persistentobject.cpython-38.pyc
+src/__pycache__/pubsub.cpython-38.pyc
+src/__pycache__/test.cpython-38.pyc
+src/__pycache__/tilesetwidget.cpython-38.pyc
+src/__pycache__/tilewidget.cpython-38.pyc
+src/__pycache__/util.cpython-38.pyc

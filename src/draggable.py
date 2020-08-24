@@ -10,7 +10,7 @@ DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
 class DraggablePanel(wx.Panel):
     def __init__(self, parent, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
-        self.parent = parent
+        self.grandparent = parent.GetParent()
         self.mOffset = (0,0)
         self.__dragged__ = False
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
@@ -21,16 +21,17 @@ class DraggablePanel(wx.Panel):
         return self.__dragged__
 
     def OnMouseDown(self, event):
-        self.CaptureMouse()
-        mx,my = self.parent.ScreenToClient(wx.GetMousePosition())
+        if not self.HasCapture(): self.CaptureMouse()
+        mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
         self.mOffset = self.ScreenToClient(wx.GetMousePosition())
         ox,oy = self.mOffset
         self.Move((mx-ox, my-oy))
 
     def OnMouseMove(self, event):
         if event.Dragging() and event.LeftIsDown():
+            self.Reparent(self.grandparent)
             self.__dragged__ = True
-            mx,my = self.parent.ScreenToClient(wx.GetMousePosition())
+            mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
             ox,oy = self.mOffset
             self.Move((mx-ox, my-oy))
             hoverEvt = DraggableHoverEvent(pos=(mx-ox, my-oy), obj=self)
