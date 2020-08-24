@@ -82,7 +82,6 @@ class Tile(ModelObject):
         return self._container
     
     def setContainer(self, container):
-        #log.debug(self.toString(), ".setContainer(", type(container), ")")
         self._container = container
 
     def id(self):
@@ -210,7 +209,7 @@ class TileContainer(ModelObject):
     def __init__(self, parent):
         super().__init__(parent)
         self.__tiles = []
-        self.persist("tiles")
+        self.persist("tiles", [])
         self.lastTilePosition = 0
 
     def setTiles(self, tiles):
@@ -264,7 +263,7 @@ class TileContainer(ModelObject):
         return tile.id() in self.__tiles
     
     def __removeTile(self, tile):
-        log.debug(type(self),".__removeTile(",tile.toString(),")")
+        log.debug(function=self.__removeTile, args=tile.toString())
         tileId = tile.id()
         assert self.containsTile(tile)
         i = self.__tiles.index(tileId)
@@ -289,7 +288,9 @@ class TileContainer(ModelObject):
         not be added to the container. 
         """
         fitPos = self.tileFitPosition(tile, pos)
-        #log.debug(str(type(self)), ".addTile(", tile.toString(), ") --> ", fitPos)
+
+        log.debug(function=self.addTile, args=(tile.toString(),pos), returns=fitPos)
+
         if fitPos>0:
             self.setTile(tile)
             self.lastTilePosition = fitPos
@@ -307,8 +308,6 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        #log.debug(type(self), ".moveTile(", tile.toString(), targetContainer.toString(), ")")
-        #log.debug("before move:", self.toString())
         tId = tile.id()
         if self.containsTile(tile):
             if targetContainer.addTile(tile, pos)>0:
@@ -336,14 +335,6 @@ class TileContainer(ModelObject):
 
     def isEmpty(self):
         return (self.getSize()==0)
-
-    def load(self, data):
-        if self.isValidData(data):
-            tiles = self.getDataAttribute(data, "tiles")
-            if tiles:
-                for tId in tiles:
-                    tile = Tile.getById(tId)
-                    tile.move(self)
 
     def toString(self):
         groupedByColor = sorted(self.getTilesAsDict().values(), key= lambda tile: tile.getColor())
@@ -381,7 +372,7 @@ class Set(TileContainer):
         super().__init__(parent)
         self.__order = []
         self.__pos = pos  #this is a tuple (x,y) and is the relative position of the set on the board
-        self.persist("order")
+        self.persist("order", [])
         self.persist("pos")
 
 
@@ -401,7 +392,7 @@ class Set(TileContainer):
         if (self.__pos == None) or pos[0] != self.__pos[0] or pos[1] != self.__pos[1]:
             self.__pos = pos
             self.setModified()
-            log.debug(type(self), ".setPos", pos)
+            log.debug(function=self.setPos, args=pos)
 
     def addTile(self, tile, pos=None):
         """
@@ -438,12 +429,11 @@ class Set(TileContainer):
             if tId in self.getTiles():
                 orderedTiles.append(self.getTile(tId))
             else:
-                log.debug(type(self),".getOrderedTiles(): __tiles__ and order inconsistent")
-                log.debug("__tiles__:", self.toString())
-                log.debug("order:", self.__order)
+                log.error("__tiles__ and order inconsistent", function=self.getOrderedTiles)
+                log.error("__tiles__:", self.toString())
+                log.error("order:", self.__order)
                 assert False
-        log.debug(type(self),".getOrderedTiles() -->", 
-            util.collectionToString(orderedTiles, lambda item: item.toString()))
+        log.debug(function=self.getOrderedTiles, returns=orderedTiles)
         return orderedTiles
 
     def isValidRun(self, tiles):
@@ -463,7 +453,7 @@ class Set(TileContainer):
                     largestDiff = diff
                 if diff<smallestDiff:
                     smallestDiff = diff
-        log.debug(type(self), ".isValidRun(", util.collectionToString(tiles, lambda item: str(item.getValue(context=tiles, settype = Set.SETTYPE_RUN))), ") --> ", (largestDiff,smallestDiff))
+        log.debug(function=self.isValidRun, args=util.collectionToString(tiles, lambda item: str(item.getValue(context=tiles, settype = Set.SETTYPE_RUN))), returns=(largestDiff,smallestDiff))
         return (largestDiff==1 and smallestDiff==1)
 
     def getSetType(self, tiles):
@@ -564,7 +554,7 @@ class Pile(TileContainer):
     def __init__(self, parent):
         super().__init__(parent)
         self.__nextId = 0
-        self.persist("nextId")
+        self.persist("nextId", 0)
         for color in GameConstants.TILECOLORS:
             for value in GameConstants.TILEVALUES:
                 for i in range(2):
@@ -594,27 +584,30 @@ class Pile(TileContainer):
 class Board(TileContainer):
     def __init__(self, parent):
         super().__init__(parent)
-        self.sets = []
+        self.__sets = []
+        
+    def getSets(self):
+        return self.__sets
         
     def addSet(self):
         set = Set(self)
-        self.sets.append(set)
+        self.__sets.append(set)
         return set
 
     def validateSets(self):
-        log.debug("", function = self.validateSets)
         invalid = 0
-        for s in self.sets:
+        for s in self.__sets:
             if not s.isEmpty():
                 if not s.isValid():
                     invalid += 1
+        log.debug(function = self.validateSets, returns=invalid)
         return invalid
 
         
     def cleanUp(self, validateSets=True):
-        log.debug(type(self),".cleanUp(validateSets=",validateSets,")")
+        log.debug(function=self.cleanUp, args=validateSets)
         #cleanup unfinished and invalid sets
-        for s in self.sets:
+        for s in self.__sets:
             if not s.isEmpty():
                 if validateSets and s.isValid():
                     # make the valid moves permanent
@@ -630,9 +623,9 @@ class Board(TileContainer):
                             t.move(t.plate)
         #remove all empty sets
         i = 0
-        for s in self.sets:
+        for s in self.__sets:
             if s.isEmpty():
-                self.sets.pop(i)
+                self.__sets.pop(i)
             else:
                 i+=1
 
@@ -644,8 +637,8 @@ class Board(TileContainer):
         return 1
 
     def toString(self):
-        s = "Board(" + str(len(self.sets)) + " sets):"
-        for set in self.sets:
+        s = "Board(" + str(len(self.__sets)) + " sets):"
+        for set in self.__sets:
             s = s + "\n" + set.toString()
         return s
 
@@ -670,7 +663,7 @@ class Player(ModelObject):
         super().__init__(game)
         self.plate = Plate(self)
         self.__name = name
-        self.persist("name")
+        self.persist("name", None)
         self.game = game
 
     def getName(self):
@@ -678,15 +671,7 @@ class Player(ModelObject):
     
     def setName(self, name):
         self.__name = name
-
-    def load(self, data):
-        if self.isValidData(data):
-            self.__name = self.getDataAttribute(data, "name")
-            elements = self.getDataElements(data)
-            if elements:
-                for e in elements:
-                    if self.getDataType(e) == "Plate": 
-                        self.plate.load(e)
+        self.setModified()
 
     def getPlate(self):
         return self.plate
@@ -694,11 +679,8 @@ class Player(ModelObject):
     def pickTile(self):
         return self.game.pile.pickTile(self)
 
-    def commitMoves(self):
-        self.game.commitMoves(self)
-
     def toString(self):
-        s =  "player: " + self.__name + self.plate.toString()
+        s =  "player: " + self.__name
         return s
 
     def print(self):
@@ -711,11 +693,24 @@ class Game(ModelObject):
         self._players = []
         self.board = Board(self)
         self.pile = Pile(self)
-        self.lastValidState = None
         self.__maxPlayers = maxPlayers
         self.__currentPlayer = None
         self.persist("maxPlayers")
         self.persist("currentPlayer")
+        
+    def reset(self):
+        TileFactory.init() 
+        self._players = []
+        self.board = Board(self)
+        self.pile = Pile(self)
+        
+    def setCurrentPlayer(self, name):
+        self.__currentPlayer = name
+        self.setModified()
+        
+    def setMaxPlayers(self, maxPlayers):
+        self.__maxPlayers = maxPlayers
+        self.setModified()
         
     def getBoard(self):
         return self.board
@@ -736,19 +731,12 @@ class Game(ModelObject):
                 self._players.append(Player(self, name))
                 self.setModified()
 
-    def rememberState(self, data=None):
-        if not data: 
-            data = self.serialize()
-        self.lastValidState = data
-        log.trace("lastValidState =", self.lastValidState, function=self.rememberState)
-
     def start(self, player):
         log.trace(function=self.start, args=player)
         self.__currentPlayer = player.getName()
         for p in self._players:
             for i in range(14):
                 p.pickTile()
-        self.rememberState()
 
     def getPlayerByName(self, name):
         player = None
@@ -756,33 +744,28 @@ class Game(ModelObject):
             if p.getName() == name:
                 player = p
                 break
-        #log.debug(type(self), ".getPlayerByName(", name, ") --> ", player)
         return player
 
     def getCurrentPlayer(self):
+        cp = None
         if self.__currentPlayer:
-            return self.getPlayerByName(self.__currentPlayer)
-        log.error(type(self), ".getCurrentPlayer() --> None")
-        return None
-
-    def commitMoves(self, player):
-        assert isinstance(player, Player)
-        log.trace(type(self),".commitMoves(",player.getName(),")")
-        if player.getName() == self.__currentPlayer and player.getParent() == self:
-            if self.board.validateSets()>1:
-                if self.lastValidState:
-                    self.deserialize(self.lastValidState)
-            else:
-                # clean the board with validation
-                self.board.cleanUp(True)
-                # recursively clear the modified flag of all ModelObject instances under Game
-                self.clearModified(True) 
-                self.rememberState()
+            cp = self.getPlayerByName(self.__currentPlayer)
+        if not cp: log.error(function=self.getCurrentPlayer, returns=cp)
+        return cp
+    
+    def validate(self):
+        return self.board.validateSets()==0
+    
+    def commit(self):
+        # clean the board with validation
+        self.board.cleanUp(True)
+        # recursively clear the modified flag of all ModelObject instances under Game
+        self.clearModified(True)
 
     def toString(self):
         s = "\ngame(" + str(len(self._players)) + " players):\n"
         for p in self._players:
-            s = s + p.toString()
+            s = s + p.toString() + p.plate.toString()
         s = s + "\npile: " + self.pile.toString()
         s = s + "\nboard: " + self.board.toString()
         return s
@@ -795,7 +778,14 @@ class Model(Publisher):
     EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded"]
     def __init__(self):
         self.currentGame = None
+        self.lastValidState = None
         super().__init__(Model.EVENTS)
+
+    def rememberState(self, data=None):
+        if not data: 
+            data = self.currentGame.serialize()
+        self.lastValidState = data
+        log.trace("lastValidState =", self.lastValidState, function=self.rememberState)
 
     def newGame(self, n):
         log.trace(function=self.newGame, args=n)
@@ -806,6 +796,17 @@ class Model(Publisher):
 
     def start(self, player):
         self.currentGame.start(player)
+        self.rememberState()
+
+    def commitMoves(self):
+        log.trace(function=self.commitMoves)
+        if not self.getCurrentGame().validate():
+            log.trace("There are invalid sets on the board, revert to last valid state")
+            if self.lastValidState:
+                self.loadGame(self.lastValidState)
+        else:
+            self.getCurrentGame().commit()
+            self.rememberState()
 
     def loadGame(self, data):
         log.trace(function=self.loadGame, args=data)
@@ -813,7 +814,7 @@ class Model(Publisher):
             del self.currentGame
         self.currentGame = Game(0)
         self.currentGame.deserialize(data)
-        self.currentGame.rememberState(data)
+        self.rememberState(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
 
     def addPlayer(self, name):

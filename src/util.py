@@ -12,14 +12,24 @@ def filteredCount(function, collection):
     for item in filtered: count+=1
     return count
 
-def collectionToString(collection, itemtostr=lambda item: str(item)):
-    s = "["
+def toString(item):
+    if hasattr(type(item), "toString"):
+        return item.toString()
+    else:
+        return str(item)
+
+def collectionToString(collection, itemtostr=lambda item: toString(item)):
+    brackets = "()" if isinstance(collection, tuple) else "[]"
+    s = brackets[0]
     n=0
     for item in collection:
-        s += itemtostr(item)
+        if isinstance(item, (tuple, list)):
+            s += collectionToString(item, itemtostr)
+        else:
+            s += itemtostr(item)
         n+=1
         if n<len(collection): s += ","
-    s += "]"
+    s += brackets[1]
     return s
 
 def upperFirst(str):
@@ -40,5 +50,8 @@ if __name__ == "__main__":
     print(filteredCount(lambda x: x>1, d.values()))
 
     print(collectionToString(c))
+    
+    print(collectionToString((1,2,3)))
+    print(collectionToString([(1,2,3), 4, 5]))
     
     print(upperFirst("test"))

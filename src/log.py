@@ -1,33 +1,49 @@
-
+import util
 class Log:
     VERBOSITY_NONE = 0
     VERBOSITY_ERROR = 1
-    VERBOSITY_VERBOSE = 2
-    VERBOSITY_DEBUG = 3
-    VERBOSITY_PREFIXES = ["", "ERROR:", "", "DEBUG:"]
+    VERBOSITY_WARNING = 2
+    VERBOSITY_VERBOSE = 3
+    VERBOSITY_DEBUG = 4
+    VERBOSITY_PREFIXES = ["", "ERROR:", "WARNING:", "TRACE:", "DEBUG:"]
     class __Log:
         def __init__(self, verbosity):
             self.verbosity = verbosity
 
         def debug(self, *args, **kwargs):
             if self.verbosity>=Log.VERBOSITY_DEBUG:
-                self.trace(*args, **kwargs)
+                self.print(Log.VERBOSITY_DEBUG, *args, **kwargs)
+
+        def warning(self, *args, **kwargs):
+            if self.verbosity>=Log.VERBOSITY_WARNING:
+                self.print(Log.VERBOSITY_WARNING, *args, **kwargs)
 
         def error(self, *args, **kwargs):
             if self.verbosity>=Log.VERBOSITY_ERROR:
-                self.trace(*args, **kwargs)
+                self.print(Log.VERBOSITY_ERROR, *args, **kwargs)
 
         def trace(self, *args, **kwargs):
+            if self.verbosity>=Log.VERBOSITY_VERBOSE:
+                self.print(Log.VERBOSITY_VERBOSE, *args, **kwargs)
+
+        def print(self, verbosityLevel, *args, **kwargs):
             if self.verbosity>=Log.VERBOSITY_VERBOSE: 
                 func = None
                 fargs = None
                 returns = None
                 kwargs2 = {}
-                args2 = (Log.VERBOSITY_PREFIXES[self.verbosity],) + args
+                args2 = (Log.VERBOSITY_PREFIXES[verbosityLevel],) + args
                 for k,v in kwargs.items():
-                    if k=="function": func = v
-                    elif k=="args": fargs = v
-                    elif k=="returns": returns = v
+                    if k=="function": 
+                        try:
+                            func = v.__qualname__
+                        finally:
+                            pass
+                        if not func: func = v
+                    elif k=="args": 
+                        fargs = util.collectionToString(v) if isinstance(v, (tuple,list)) else "(" + util.toString(v) + ")"
+                    elif k=="returns": 
+                        returns = util.collectionToString(v) if isinstance(v, (tuple,list)) else util.toString(v)
                     else: kwargs2[k] = v
                 if func:
                     args2 += (func, fargs if fargs else "()")
@@ -49,6 +65,10 @@ class Log:
     def debug(self, *args, **kwargs):
         if Log.instance:
             Log.instance.debug(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        if Log.instance:
+            Log.instance.warning(*args, **kwargs)
 
     def error(self, *args, **kwargs):
         if Log.instance:

@@ -59,7 +59,7 @@ class BoardPanel(wx.Panel):
         if self.board!=None:
             for tileSetWidget in self.getObjectsByType(TileSetWidget):
                 tileSetWidget.Destroy()
-            for set in self.board.sets:
+            for set in self.board.getSets():
                 tileSetWidget = TileSetWidget(self, set)
                 w,h = TileWidget.defaultSize()
                 tileSetWidget.SetSize((w+6,h+10))
@@ -175,7 +175,7 @@ class GamePanel(wx.Panel):
                 tileWidget.Move((tx,ty))
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
-        for set in self.game.board.sets:
+        for set in self.game.board.getSets():
             sx, sy = set.getPos() 
             setTiles = set.getOrder()
             for tId in setTiles:

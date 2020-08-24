@@ -54,7 +54,5 @@ class Controller:
             self.getCurrentGame().board.cleanUp(False)
 
     def commit(self):
-        player = self.getCurrentPlayer()
-        if player:
-            player.commitMoves()
+        self.model.commitMoves()
 

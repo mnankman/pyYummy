@@ -12,14 +12,23 @@ class PersistentObject:
     def __init__(self):
         self.__persistent__ = []
 
-    def persist(self, persistentAttrName):
-        self.__persistent__.append((type(self).__name__, persistentAttrName))
+    def persist(self, persistentAttrName, initValue=None):
+        self.__persistent__.append((type(self).__name__, persistentAttrName, initValue))
+        
+    def initPersistentAttributes(self):
+        for pa in self.__persistent__:
+            className, attrName, initValue = pa
+            names = ["_"+className+"__"+attrName]
+            for base in self.__class__.__bases__:
+                names.append("_"+base.__name__+"__"+attrName)
+            for nm in names:
+                if nm in self.__dict__:
+                    setattr(self, nm, initValue)     
     
     def getPersistentAttributes(self):
         result = {}
         for pa in self.__persistent__:
-            className = pa[0]
-            attrName = pa[1]
+            className, attrName, initValue = pa
             names = ["_"+className+"__"+attrName]
             for base in self.__class__.__bases__:
                 names.append("_"+base.__name__+"__"+attrName)
@@ -46,8 +55,9 @@ class PersistentObject:
 
     def isValidData(self, data):
         if data!=None and "type" in data and data["type"] == self.getType():
-            log.trace(type(self),".isValidData(",data,")")
+            log.debug(function=self.isValidData, args=data)
             return True
+        log.error(function=self.isValidData, args=data, returns=False)
         return False
 
     def getDataType(self, data):
@@ -74,16 +84,19 @@ class PersistentObject:
                 for nm in names:
                     setterName = "set"+util.upperFirst(item)
                     if hasattr(type(self), setterName):
+                        log.debug("setterName =", setterName)
                         setter = getattr(type(self), setterName)
-                        log.trace(setter, "(", attrValue, ")")
+                        log.debug(function=setter, args=attrValue)
                         setter(self, attrValue)
+                        break
                     else:
                         if hasattr(self, nm):
-                            #log.trace("set: ", nm, " = ", attrValue)
+                            log.debug("set: ", nm, " = ", attrValue)
                             setattr(self, nm, attrValue)
+                            break
                         else:
-                            log.trace(className, "does not have an attribute named:" + item, 
-                                "\n\n", type(self), ".__dict__", self.__dict__, "\n\n")
+                            log.warning(className, "does not have an attribute named:", item, "(", nm, ")")  
+                            log.debug("\n\n", type(self), ".__dict__", self.__dict__, "\n\n")
 
     def addNestedElement(self, data, elementData):
         d = data.copy()
@@ -99,8 +112,9 @@ class PersistentObject:
         return data
 
     def deserialize(self, data):
-        log.debug(function=self.desreialize, args=data)
+        log.debug(function=self.deserialize, args=data)
         if self.isValidData(data):
+            #self.initPersistentAttributes()
             self.setDataAttributes(data)
             elements = self.getDataElements(data)
             if elements:
