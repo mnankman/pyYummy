@@ -5,6 +5,9 @@ import model
 import util
 from tilewidget import TileWidget
 
+from log import Log
+log = Log()
+
 class TileSetWidget(TileWidgetView):  
     normalPenColor = 'Black'
     highlightPenColor = 'White'
@@ -37,12 +40,6 @@ class TileSetWidget(TileWidgetView):
         event.Skip()
         #dc = wx.BufferedPaintDC(self)
         if self.set.isModified():
-            tw,th = TileWidget.defaultSize()
-
-            w,h = self.GetClientSize()
-            #self.SetSize(len(self.set.getTiles())*36+6, h)
-            self.SetSize(self.set.getSize()*36+6, th+30)
-
             self.updateSize()
         dc = wx.PaintDC(self)
         self.draw(dc)
@@ -69,7 +66,7 @@ class TileSetWidget(TileWidgetView):
     def updateSize(self):
         tw,th = TileWidget.defaultSize()
         w,h = self.GetClientSize()
-        self.SetSize(self.set.getSize()*36+6, th+30)
+        self.SetSize(self.set.getSize()*tw+6, th+30)
     
     def setPos(self, pos):
         if pos:
@@ -112,7 +109,7 @@ class TileSetWidget(TileWidgetView):
                 tileWidget.Move((xOffset, 3))
                 tileWidget.Refresh()
                 xOffset = xOffset + w 
-        self.SetSize(self.set.getSize()*tw+6, th+30)
+        self.updateSize()
 
 
     def onTileHover(self, event):
@@ -138,6 +135,8 @@ class TileSetWidget(TileWidgetView):
         self.refreshLayout()
 
     def onMsgSetModified(self, payload):
+        log.debug(function=self.onMsgSetModified, args=payload)
         self.update()
+        self.refreshLayout()
         
 

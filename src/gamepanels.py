@@ -111,12 +111,12 @@ class BoardPanel(TileWidgetView):
             tileSetWidget.onTileRelease(event)
         else:
             log.debug ("released on board:", (x,y), event.obj.tile.toString())
+            event.obj.Reparent(self)
             #move the tile to the board, this will result in a new instance of model.Set containing the tile:
             tile.move(self.board) 
             #tile.container is an instance of model.Set, set the position on the board:
             tile.getContainer().setPos((x-3,y-4))
         event.obj.Raise()
-        event.obj.Reparent(self)
         self.Refresh()
 
     def onMsgBoardNewChild(self, payload):

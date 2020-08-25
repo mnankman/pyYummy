@@ -38,15 +38,14 @@ class TileWidgetView(DraggablePanel):
         self.sendNewTileWidget(tileWidget)
 
     def findTileWidgetById(self, tId):
-        tw = None
-        for c in self.GetChildren():
-            if isinstance(c, TileWidget):
-                if tId==c.tile.id():
-                    tw = c
-                    break
-        if not tw:
-            log.error(function=self.findTileWidgetById, args=tId, returns=tw)
-        return tw
+        result = None
+        for tw in self.getTileWidgets():
+            if tId==tw.tile.id():
+                result = tw
+                break
+        if not result:
+            log.error(function=self.findTileWidgetById, args=tId, returns=result)
+        return result
  
     def resetTileWidgets(self):
         tileWidgets = self.getTileWidgets()

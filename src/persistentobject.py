@@ -34,7 +34,8 @@ class PersistentObject:
                 names.append("_"+base.__name__+"__"+attrName)
             for nm in names:
                 if nm in self.__dict__:
-                    result[attrName] = self.__dict__[nm]
+                    v = self.__dict__[nm]
+                    result[attrName] = v.copy() if hasattr(type(v), "copy") else v
         #log.trace("\n\n", type(self), ".getPersistentAttributes() -->", result, "\n\n")
         return result
         
