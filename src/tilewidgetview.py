@@ -12,7 +12,6 @@ DestroyTileWidgetEvent, EVT_TILEWIDGETVIEW_DESTROY = wx.lib.newevent.NewEvent()
 class TileWidgetView(DraggablePanel):
     def __init__(self, parent, draggable=False, *args, **kwargs):
         super().__init__(parent, draggable, *args, **kwargs)
-        self.__tileWidgets__ = []
             
     def sendNewTileWidget(self, tw):
         assert isinstance(tw, TileWidget)
@@ -24,11 +23,18 @@ class TileWidgetView(DraggablePanel):
         event = DestroyTileWidgetEvent(obj=tw)
         wx.PostEvent(self, event)
 
+    def getObjectsByType(self, type):
+        result = []
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, type):
+                result.append(c)
+        return result
+
     def getTileWidgets(self):
-        return self.__tileWidgets__
+        return self.getObjectsByType(TileWidget)
 
     def addTileWidget(self, tileWidget):
-        self.__tileWidgets__.append(tileWidget)
         self.sendNewTileWidget(tileWidget)
 
     def findTileWidgetById(self, tId):
@@ -43,8 +49,8 @@ class TileWidgetView(DraggablePanel):
         return tw
  
     def resetTileWidgets(self):
-        if self.getTileWidgets() != None:
-            for tileWidget in self.getTileWidgets():
+        tileWidgets = self.getTileWidgets()
+        if tileWidgets != None:
+            for tileWidget in tileWidgets:
                 tileWidget.Destroy()
-        self.__tileWidgets__ = []
 
