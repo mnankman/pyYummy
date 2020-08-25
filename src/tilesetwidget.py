@@ -1,17 +1,18 @@
 import wx
 import draggable
+from tilewidgetview import TileWidgetView
 import model
 import util
 from tilewidget import TileWidget
 
-class TileSetWidget(draggable.DraggablePanel):  
+class TileSetWidget(TileWidgetView):  
     normalPenColor = 'Black'
     highlightPenColor = 'White'
     modifiedPenColor = '#008800'
     modifiedHighlightPenColor = '#00FF00'
     def __init__(self, parent, set):
 #        super().__init__(parent=parent, style=wx.TRANSPARENT_WINDOW)
-        super().__init__(parent=parent)
+        super().__init__(parent, True)
         self.set = set
         self.highlight = False
         self.newTilePos = None
@@ -39,7 +40,7 @@ class TileSetWidget(draggable.DraggablePanel):
             tw,th = TileWidget.defaultSize()
 
             w,h = self.GetClientSize()
-            self.SetSize(len(self.set.getTiles())*36+6, h)
+            #self.SetSize(len(self.set.getTiles())*36+6, h)
             self.SetSize(self.set.getSize()*36+6, th+30)
 
             self.updateSize()
@@ -93,6 +94,26 @@ class TileSetWidget(draggable.DraggablePanel):
         
         return posInSet
       
+    def rebuild(self):
+        for tile in self.set.getOrderedTiles():
+            tileWidget = TileWidget(self, tile)
+            self.addTileWidget(tileWidget)
+            tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
+            tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
+        self.refreshLayout()
+    
+    def refreshLayout(self):
+        tw,th = TileWidget.defaultSize()
+        xOffset = 3
+        for tId in self.set.getOrder():
+            tileWidget = self.findTileWidgetById(tId)
+            if tileWidget and not(tileWidget.isBeingDragged()):
+                w,h = tileWidget.GetSize()
+                tileWidget.Move((xOffset, 3))
+                tileWidget.Refresh()
+                xOffset = xOffset + w 
+        self.SetSize(self.set.getSize()*tw+6, th+30)
+
 
     def onTileHover(self, event):
         tile = event.obj.tile
@@ -105,14 +126,16 @@ class TileSetWidget(draggable.DraggablePanel):
         self.Refresh()
 
     def onTileRelease(self, event):
+        tileWidget = event.obj
         tile = event.obj.tile
         x,y = event.pos
         self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         if tile.move(self.set, self.newTilePos):
-            #self.updateSize()
+            tileWidget.Reparent(self)
             self.highlight = False
             self.Refresh()
         self.newTilePos = None
+        self.refreshLayout()
 
     def onMsgSetModified(self, payload):
         self.update()
