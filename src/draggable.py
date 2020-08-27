@@ -33,6 +33,7 @@ class DraggablePanel(wx.Panel):
         if not self.__draggable__: return
         if event.Dragging() and event.LeftIsDown():
             self.Reparent(self.grandparent)
+            if not self.HasCapture(): self.CaptureMouse()
             self.__dragged__ = True
             mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
             ox,oy = self.mOffset

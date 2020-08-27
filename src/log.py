@@ -31,6 +31,7 @@ class Log:
                 func = None
                 fargs = None
                 returns = None
+                var=None
                 kwargs2 = {}
                 args2 = (Log.VERBOSITY_PREFIXES[verbosityLevel],) + args
                 for k,v in kwargs.items():
@@ -44,6 +45,10 @@ class Log:
                         fargs = util.collectionToString(v) if isinstance(v, (tuple,list)) else "(" + util.toString(v) + ")"
                     elif k=="returns": 
                         returns = util.collectionToString(v) if isinstance(v, (tuple,list)) else util.toString(v)
+                    elif k=="var":
+                        assert isinstance(v, tuple) and len(v)==2
+                        varName, varValue = v
+                        args2 += (varName, "=", varValue)
                     else: kwargs2[k] = v
                 if func:
                     args2 += (func, fargs if fargs else "()")

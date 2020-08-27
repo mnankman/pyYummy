@@ -19,6 +19,7 @@ class TileSetWidget(TileWidgetView):
         super().__init__(parent, True)
         self.set = set
         self.highlight = False
+        self.mouseOver = False
         self.newTilePos = None
         self.paintStyler = PaintStyler()
 
@@ -27,13 +28,23 @@ class TileSetWidget(TileWidgetView):
         self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
         self.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onDragRelease)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
-        
+
     def getStateStr(self):
         stateStr = str(self.set.getSize())
         if self.newTilePos != None:
             stateStr += ","+str(self.newTilePos)
         return stateStr
+
+    def onMouseEnter(self, event):
+        self.mouseOver = True
+        self.Refresh()
+
+    def onMouseLeave(self, event):
+        self.mouseOver = False
+        self.Refresh()
 
     def onDragRelease(self, event):
         x,y = event.pos
@@ -46,8 +57,9 @@ class TileSetWidget(TileWidgetView):
             self.updateSize()
         dc = wx.PaintDC(self)
         self.draw(dc)
+        self.drawTilePosIndicator(dc)
 
-    def draw(self,dc):
+    def draw(self, dc):
         if self.highlight:
             if self.set.isModified():
                 self.paintStyler.select("TileSetWidget:modifiedHighlight", dc)
@@ -56,12 +68,23 @@ class TileSetWidget(TileWidgetView):
         else:
             if self.set.isModified():
                 self.paintStyler.select("TileSetWidget:modified", dc)
+            elif self.mouseOver:
+                self.paintStyler.select("TileSetWidget:mouseOver", dc)
             else:
                 self.paintStyler.select("TileSetWidget:normal", dc)
         tw,th = TileWidget.defaultSize()
         w,h = self.GetClientSize()
         dc.DrawRoundedRectangle(0,0,w,th+10,6)
-        dc.DrawText(self.getStateStr(), 3, th+12)
+
+    def drawTilePosIndicator(self, dc):
+        if self.newTilePos:
+            self.paintStyler.select("TileSetWidget:posIndicator", dc)
+            tw,th = TileWidget.defaultSize()
+            w,h = self.GetClientSize()
+            p = self.newTilePos-1
+            ix,iy = (p * int((w-4)/self.set.getSize()) + 1, 1)
+            dc.DrawLine(ix,iy,ix,iy+th+3)
+
 
     def updateSize(self):
         tw,th = TileWidget.defaultSize()

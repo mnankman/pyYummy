@@ -30,10 +30,12 @@ class StyleCatalog:
             self.__styles__[name] = styles
 
         def getStyle(self, name):
+            style = None
             if name in self.__styles__:
                 if hasattr(type(self.__styles__[name]), "copy"):
-                    return self.__styles__[name].copy()
-            return None
+                    style = self.__styles__[name].copy()
+            log.debug(function=self.getStyle, args=name, returns=style)
+            return style
 
     def getInstance():
         if not StyleCatalog.__instance__: StyleCatalog.__instance__ = StyleCatalog.__StyleCatalog__()
@@ -49,14 +51,15 @@ class PaintStyler:
         assert dc
         style = self.stylecat.getStyle(name)
         if style:
+            log.debug(var=("style",style))
             assert isinstance(style, dict)
             for styleType, styleInstance in style.items():
                 if styleType == wx.Pen: dc.SetPen(styleInstance)
                 if styleType == wx.Brush: dc.SetBrush(styleInstance)
                 if styleType == wx.Font: dc.SetFont(styleInstance)
                 if styleType == Colors: 
-                    if styleInstance.textForeGround: dc.SetTextForeground(styleInstance)
-                    if styleInstance.textBackGround: dc.SetTextBackground(styleInstance)
+                    if styleInstance.textForeground: dc.SetTextForeground(styleInstance.textForeground)
+                    if styleInstance.textBackground: dc.SetTextBackground(styleInstance.textBackground)
  
 
                 
