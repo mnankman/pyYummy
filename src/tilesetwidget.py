@@ -3,6 +3,7 @@ import draggable
 from tilewidgetview import TileWidgetView
 import model
 import util
+from styler import PaintStyler
 from tilewidget import TileWidget
 
 from log import Log
@@ -19,6 +20,8 @@ class TileSetWidget(TileWidgetView):
         self.set = set
         self.highlight = False
         self.newTilePos = None
+        self.paintStyler = PaintStyler()
+
         self.font = wx.Font(8, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
             underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT) 
         self.SetBackgroundColour(parent.GetBackgroundColour())
@@ -47,20 +50,17 @@ class TileSetWidget(TileWidgetView):
     def draw(self,dc):
         if self.highlight:
             if self.set.isModified():
-                dc.SetPen(wx.Pen(TileSetWidget.modifiedHighlightPenColor, 1, wx.PENSTYLE_DOT))
+                self.paintStyler.select("TileSetWidget:modifiedHighlight", dc)
             else:
-                dc.SetPen(wx.Pen(TileSetWidget.highlightPenColor, 1, wx.PENSTYLE_DOT))
+                self.paintStyler.select("TileSetWidget:highlight", dc)
         else:
             if self.set.isModified():
-                dc.SetPen(wx.Pen(TileSetWidget.modifiedPenColor, 1, wx.PENSTYLE_DOT))
+                self.paintStyler.select("TileSetWidget:modified", dc)
             else:
-                dc.SetPen(wx.Pen(TileSetWidget.normalPenColor, 1, wx.PENSTYLE_DOT))
-        dc.SetBrush(wx.TRANSPARENT_BRUSH)
+                self.paintStyler.select("TileSetWidget:normal", dc)
         tw,th = TileWidget.defaultSize()
         w,h = self.GetClientSize()
         dc.DrawRoundedRectangle(0,0,w,th+10,6)
-        dc.SetFont(self.font) 
-        dc.SetTextForeground("white")
         dc.DrawText(self.getStateStr(), 3, th+12)
 
     def updateSize(self):

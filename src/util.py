@@ -36,6 +36,13 @@ def upperFirst(str):
     n = len(str)
     return str[0:1].upper() + str[1:]
 
+def getKwargValue(name, *args, **kwargs):
+    try:
+        return kwargs[name]
+    except KeyError:
+        return None
+
+
 if __name__ == "__main__":
     c = [1,1,1,2,1]
     print(filteredCount(lambda x: x>1, c))
@@ -55,3 +62,10 @@ if __name__ == "__main__":
     print(collectionToString([(1,2,3), 4, 5]))
     
     print(upperFirst("test"))
+
+    def fun(arg, *args, **kwargs):
+        for arg in kwargs.keys(): 
+            print(arg, "=", getKwargValue(arg, **kwargs))
+        print("D = ", getKwargValue("D", **kwargs))
+
+    fun(0, A=False, B="test", C=[1,2,3])

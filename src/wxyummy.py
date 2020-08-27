@@ -4,6 +4,7 @@ import asyncio
 
 import wx.lib.inspection
 
+import styles
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
 from gamepanels import BoardPanel, GamePanel, PlatePanel
@@ -70,6 +71,8 @@ class ButtonBar(wx.Panel):
 class MainWindow(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Yummy')
+
+        styles.init()
 
         iconFile = RESOURCES+"/yummy-icon-28-white.png"
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
