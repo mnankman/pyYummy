@@ -15,17 +15,14 @@ class TileSetWidget(TileWidgetView):
     modifiedPenColor = '#008800'
     modifiedHighlightPenColor = '#00FF00'
     def __init__(self, parent, set):
-#        super().__init__(parent=parent, style=wx.TRANSPARENT_WINDOW)
         super().__init__(parent, True)
         self.set = set
         self.highlight = False
         self.mouseOver = False
         self.newTilePos = None
+        self.NewTilePosList = []
         self.paintStyler = PaintStyler()
 
-        self.font = wx.Font(8, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
-            underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT) 
-        self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_PAINT,self.onPaint)
         self.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onDragRelease)
         self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
@@ -74,22 +71,22 @@ class TileSetWidget(TileWidgetView):
                 self.paintStyler.select("TileSetWidget:normal", dc)
         tw,th = TileWidget.defaultSize()
         w,h = self.GetClientSize()
-        dc.DrawRoundedRectangle(0,0,w,th+10,6)
+        dc.DrawRectangle(0,h-5,w,h)
 
     def drawTilePosIndicator(self, dc):
-        if self.newTilePos:
+        if self.newTilePos and len(self.NewTilePosList)>=self.newTilePos:
             self.paintStyler.select("TileSetWidget:posIndicator", dc)
             tw,th = TileWidget.defaultSize()
             w,h = self.GetClientSize()
             p = self.newTilePos-1
-            ix,iy = (p * int((w-4)/self.set.getSize()) + 1, 1)
-            dc.DrawLine(ix,iy,ix,iy+th+3)
+            ix,iy = (self.NewTilePosList[p], h-5)
+            dc.DrawPolygon([(ix,iy),(ix-5,h),(ix+5,h)])
 
 
     def updateSize(self):
         tw,th = TileWidget.defaultSize()
-        w,h = self.GetClientSize()
-        self.SetSize(self.set.getSize()*tw+6, th+30)
+        numTiles = self.set.getSize()
+        self.SetSize(numTiles*tw+10, th+10)
     
     def setPos(self, pos):
         if pos:
@@ -124,7 +121,8 @@ class TileSetWidget(TileWidgetView):
     
     def refreshLayout(self):
         tw,th = TileWidget.defaultSize()
-        xOffset = 3
+        xOffset = 5
+        self.NewTilePosList = [xOffset]
         for tId in self.set.getOrder():
             tileWidget = self.findTileWidgetById(tId)
             if tileWidget and not(tileWidget.isBeingDragged()):
@@ -132,6 +130,7 @@ class TileSetWidget(TileWidgetView):
                 tileWidget.Move((xOffset, 3))
                 tileWidget.Refresh()
                 xOffset = xOffset + w 
+                self.NewTilePosList.append(xOffset)
         self.updateSize()
 
 

@@ -18,16 +18,21 @@ class StyleCatalog:
         def __init__(self):
             self.__styles__ = {}
 
-        def setStyle(self, *args, **kwargs):
+        def addStyle(self, *args, **kwargs):
             name = util.getKwargValue("styleName", **kwargs)
             assert name
+            elements = util.getKwargValue("elements", **kwargs)
+            assert elements
             basedOn = util.getKwargValue("basedOn", **kwargs)
-            styles = None
-            if basedOn: styles = self.getStyle(basedOn)
-            if not styles: styles = {}
-            for style in args:
-                styles[type(style)] = style
-            self.__styles__[name] = styles
+            # start collecting the settings (colours, brushes, pens) for this style
+            settings = None
+            # copy the settings of the style this style is based on
+            if basedOn: settings = self.getStyle(basedOn)
+            if not settings: settings = {}
+            #convert each setting to a tuple: (type, value)
+            for el in elements:
+                settings[type(el)] = el
+            self.__styles__[name] = settings
 
         def getStyle(self, name):
             style = None

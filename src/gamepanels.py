@@ -56,13 +56,15 @@ class BoardPanel(TileWidgetView):
                 tileSetWidget.setPos(set.getPos())
                 tileSetWidget.rebuild()
 
-    def cleanUpSets(self):
+    def cleanUp(self):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             if tileSetWidget.set.isEmpty():
                 tileSetWidget.Destroy()
+        for tileWidget in self.getObjectsByType(TileWidget):
+            tileWidget.Destroy()
 
     def refresh(self):
-        self.cleanUpSets()
+        self.cleanUp()
         self.Refresh()
 
     def findTileSetWidgetByOverlap(self, rect):
@@ -96,7 +98,9 @@ class BoardPanel(TileWidgetView):
     
     def onTileSetRelease(self, event):
         log.debug(function=self.onTileSetRelease, args=event)
-                
+        tileSet = event.obj
+        tileSet.Reparent(self)
+
     def onTileHover(self, event):
         pos = event.pos
         self.triggerTileSetWidgets(event)
@@ -133,6 +137,7 @@ class PlatePanel(TileWidgetView):
         self.sortMethod = 0
         
     def setPlayer(self, player):
+        if not player: return
         assert isinstance(player, model.Player)
         self.player = player
         self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
