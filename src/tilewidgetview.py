@@ -48,8 +48,10 @@ class TileWidgetView(DraggablePanel):
         return result
  
     def resetTileWidgets(self):
-        tileWidgets = self.getTileWidgets()
-        if tileWidgets != None:
-            for tileWidget in tileWidgets:
-                tileWidget.Destroy()
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, TileWidget):
+                c.Destroy()
+
+    
 

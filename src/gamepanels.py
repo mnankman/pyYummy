@@ -25,14 +25,6 @@ class BoardPanel(TileWidgetView):
         tw.Bind(draggable.EVT_DRAGGABLE_HOVER, self.onTileHover)
         tw.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileRelease)
 
-    def getObjectsByType(self, type):
-        result = []
-        children = self.GetChildren()
-        for c in children:
-            if isinstance(c, type):
-                result.append(c)
-        return result
-
     def reset(self, board):
         """
         destroys all instances of TileSetWidget that are currently being displayed        
@@ -51,6 +43,8 @@ class BoardPanel(TileWidgetView):
         if self.board!=None:
             for tileSetWidget in self.getObjectsByType(TileSetWidget):
                 tileSetWidget.Destroy()
+            for tileWidget in self.getObjectsByType(TileWidget):
+                tileWidget.Destroy()
             for set in self.board.getSets():
                 tileSetWidget = TileSetWidget(self, set)
                 tileSetWidget.setPos(set.getPos())
@@ -60,6 +54,8 @@ class BoardPanel(TileWidgetView):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             if tileSetWidget.set.isEmpty():
                 tileSetWidget.Destroy()
+            else:
+                tileSetWidget.refreshLayout()
         for tileWidget in self.getObjectsByType(TileWidget):
             tileWidget.Destroy()
 
@@ -216,6 +212,10 @@ class GamePanel(TileWidgetView):
         self.SetSizer(vbox)
 
     def reset(self, game):
+        for tileSetWidget in self.getObjectsByType(TileSetWidget):
+            tileSetWidget.Destroy()
+        for tileWidget in self.getObjectsByType(TileWidget):
+            tileWidget.Destroy()
         self.game = game
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(game.board)

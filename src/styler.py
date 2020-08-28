@@ -39,7 +39,8 @@ class StyleCatalog:
             if name in self.__styles__:
                 if hasattr(type(self.__styles__[name]), "copy"):
                     style = self.__styles__[name].copy()
-            log.debug(function=self.getStyle, args=name, returns=style)
+            if not style:
+                log.warning(function=self.getStyle, args=name, returns=style)
             return style
 
     def getInstance():
@@ -51,12 +52,10 @@ class PaintStyler:
         self.stylecat = StyleCatalog.getInstance()
 
     def select(self, name, dc):
-        log.debug(function=self.select, args=(name, dc))
         assert isinstance(dc, wx.DC)
         assert dc
         style = self.stylecat.getStyle(name)
         if style:
-            log.debug(var=("style",style))
             assert isinstance(style, dict)
             for styleType, styleInstance in style.items():
                 if styleType == wx.Pen: dc.SetPen(styleInstance)
