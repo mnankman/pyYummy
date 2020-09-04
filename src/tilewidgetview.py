@@ -63,6 +63,18 @@ class TileWidgetView(draggable.DraggablePanel):
     def onTileHover(self, event):
         pass
 
+    def getEventPosition(self, event):
+        return self.ScreenToClient(event.pos)
+
+    def getEventObjectPosition(self, event):
+        return self.ScreenToClient(event.obj.GetScreenPosition())
+
+    def getEventObjectRect(self, event):
+        x,y = self.getEventObjectPosition(event)
+        w,h = event.obj.GetSize()
+        log.debug(function=self.getEventObjectRect, args=event, returns=(x,y,w,h))
+        return (x, y, w, h)
+
     def onTileRelease(self, event):
         log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
         if isinstance(event.obj, TileWidget):

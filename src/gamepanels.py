@@ -11,13 +11,10 @@ log = Log()
 
 class BoardPanel(TileWidgetView):    
     def __init__(self, parent):
-        #super().__init__(parent=parent, size=(800,500))
         super().__init__(parent)
         self.parent = parent
         self.board = None
         self.SetBackgroundColour('#888888')
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(self.sizer)
         
     def reset(self, board):
         """
@@ -91,19 +88,20 @@ class BoardPanel(TileWidgetView):
         tileSet.accept(self)
 
     def onTileHover(self, event):
+        log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
         pos = event.pos
         self.triggerTileSetWidgets(event)
 
     def onTileRelease(self, event):
         log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
-        x,y = event.pos
-        tx,ty,tw,th = event.obj.GetRect()
+        x,y = self.getEventPosition(event)
+        tx,ty,tw,th = self.getEventObjectRect(event)
         tile = event.obj.tile
         tileSetWidget = self.findTileSetWidgetByOverlap((x,y,tw,th))
         if tileSetWidget:
             tileSetWidget.onTileRelease(event)
         else:
-            if (util.insideRect(event.obj.GetRect(), self.GetRect())):
+            if (util.insideRect(event.obj.GetScreenRect(), self.GetScreenRect())):
                 log.debug ("released on board:", (x,y), event.obj.tile.toString())
                 event.obj.accept(self)
                 #move the tile to the board, this will result in a new instance of model.Set containing the tile:
@@ -112,7 +110,6 @@ class BoardPanel(TileWidgetView):
                 tile.getContainer().setPos((x-3,y-4))
             else:
                 event.obj.reject()
-        event.obj.Raise()
         self.Refresh()
 
     def onMsgBoardNewChild(self, payload):
@@ -122,7 +119,6 @@ class BoardPanel(TileWidgetView):
 
 class PlatePanel(TileWidgetView):    
     def __init__(self, parent):
-#        super().__init__(parent=parent, size=(800,100))
         super().__init__(parent)
         self.SetBackgroundColour('#CCCCCC')
         self.player = None
@@ -210,8 +206,8 @@ class GamePanel(TileWidgetView):
 
         self.boardPanel = BoardPanel(self)
         self.platePanel = PlatePanel(self)
-        # board panel should accept tiles dragged from plate panel and dropped on board panel
-        self.platePanel.addTileWidgetDropTarget(self.boardPanel)
+        self.platePanel.addTileWidgetDropTarget(self)
+        self.boardPanel.addTileWidgetDropTarget(self)
         vbox.Add(self.boardPanel, 5, wx.EXPAND)
         vbox.Add(self.platePanel, 2, wx.EXPAND)
 
@@ -259,4 +255,19 @@ class GamePanel(TileWidgetView):
         if not "modified" in payload: #only process modifications of game object, not of its children
             log.debug(type(self),"received",payload)
             self.refresh()
+
+    def onTileRelease(self, event):
+        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.tile))
+        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
+            self.boardPanel.onTileRelease(event)
+        elif util.insideRect(event.pos, self.platePanel.GetScreenRect()):
+            self.platePanel.onTileRelease(event)
+        else:
+            event.obj.reject()
+
+    def onTileHover(self, event):
+        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
+            self.boardPanel.onTileHover(event)
+        elif util.insideRect(event.pos, self.platePanel.GetScreenRect()):
+            self.platePanel.onTileHover(event)
 

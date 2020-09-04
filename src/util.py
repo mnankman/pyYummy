@@ -6,11 +6,17 @@ def rectsOverlap(r1, r2):
     else:
         return True
 
-def insideRect(r1, r2):
-    x1,y1,w1,h1 = r1
-    x2,y2,w2,h2 = r2
-    if (x1>=x2) and (y1>=y2) and (x1+w1<=x2+w2) and (y1+h1<=y2+h2):
-        return True
+def insideRect(tup, rect):
+    if len(tup) >= 2: 
+        x1 = tup[0]
+        y1 = tup[1]
+        w1 = tup[2] if len(tup)>=3 else 0
+        h1 = tup[3] if len(tup)>=4 else 0
+        x2,y2,w2,h2 = rect
+        if (x1>=x2) and (y1>=y2) and (x1+w1<=x2+w2) and (y1+h1<=y2+h2):
+            return True
+        else:
+            return False
     else:
         return False
 

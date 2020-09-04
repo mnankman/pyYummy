@@ -101,8 +101,7 @@ class TileSetWidget(TileWidgetView):
         posInSet = 1
         w,h = self.GetSize()
         tx,ty = pos #coordinates of hovering or dropped tile
-        sx,sy = self.set.getPos()
-        mx,my = self.ScreenToClient(wx.GetMousePosition())
+        sx,sy = self.GetParent().ClientToScreen(self.set.getPos())
         
         rx = tx-sx #the relative x-pos of the dropped tile within the set
         n = self.set.getSize()
@@ -110,6 +109,7 @@ class TileSetWidget(TileWidgetView):
         if tw>0:
             posInSet = int((rx-0.5*tw)/tw)+2
         
+        log.debug(function=self.getTilePosInSet, args=(tx,sx,rx), returns=posInSet)
         return posInSet
       
     def rebuild(self):
@@ -137,7 +137,7 @@ class TileSetWidget(TileWidgetView):
 
     def onTileHover(self, event):
         tile = event.obj.tile
-        if util.rectsOverlap(event.obj.GetRect(), self.GetRect()) and self.set.tileFitPosition(tile)>0:
+        if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()) and self.set.tileFitPosition(tile)>0:
             self.highlight = True
             self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         else:

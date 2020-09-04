@@ -30,6 +30,9 @@ class DraggablePanel(wx.Panel):
     def accept(self, newParent):
         log.debug(function=self.accept)
         self.Reparent(newParent)
+        mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
+        ox,oy = self.mOffset
+        self.Move((mx-ox, my-oy))
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
 
@@ -51,15 +54,21 @@ class DraggablePanel(wx.Panel):
             log.debug(function=self.dragStart)
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
-            self.Reparent(self.grandparent)
+            self.Reparent(self.getTopLevelFrame())
             self.__dragged__ = True
+
+    def getTopLevelFrame(self):
+        tlf = self.GetParent()
+        while tlf.GetParent():
+            tlf = tlf.GetParent()
+        return tlf
 
     def drop(self):
         if self.isBeingDragged():
             log.debug(function=self.drop)
             if (self.HasCapture()): self.ReleaseMouse()
             self.__dragged__ = False
-            releaseEvt = DraggableReleaseEvent(pos=self.GetPosition(), obj=self)
+            releaseEvt = DraggableReleaseEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
 
     def OnMouseDown(self, event):
@@ -69,13 +78,13 @@ class DraggablePanel(wx.Panel):
 
     def OnMouseMove(self, event):
         if not self.isDraggable(): return
+        #log.debug(function=self.OnMouseMove, args=(event.Dragging(),event.LeftIsDown(), self.HasCapture()))
         if event.Dragging() and event.LeftIsDown() and self.HasCapture():
             self.dragStart()
-            #if not self.HasCapture(): self.CaptureMouse()
             mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
             ox,oy = self.mOffset
             self.Move((mx-ox, my-oy))
-            hoverEvt = DraggableHoverEvent(pos=(mx-ox, my-oy), obj=self)
+            hoverEvt = DraggableHoverEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, hoverEvt)
 
     def OnMouseUp(self, event):
