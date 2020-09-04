@@ -1,7 +1,7 @@
 import wx
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
-from tilewidgetview import TileWidgetView, AddTileWidgetEvent, DestroyTileWidgetEvent, EVT_TILEWIDGETVIEW_ADD, EVT_TILEWIDGETVIEW_DESTROY
+from tilewidgetview import TileWidgetView
 import draggable
 import model
 import util
@@ -19,12 +19,6 @@ class BoardPanel(TileWidgetView):
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.sizer)
         
-    def onNewTileWidget(self, event):
-        tw = event.obj
-        assert isinstance(tw, draggable.DraggablePanel)
-        tw.Bind(draggable.EVT_DRAGGABLE_HOVER, self.onTileHover)
-        tw.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileRelease)
-
     def reset(self, board):
         """
         destroys all instances of TileSetWidget that are currently being displayed        
@@ -89,13 +83,12 @@ class BoardPanel(TileWidgetView):
         tileSetWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileSetRelease)
 
     def onTileSetHover(self, event):
-        log.debug(function=self.onTileSetHover, args=event)
         pos = event.pos
     
     def onTileSetRelease(self, event):
         log.debug(function=self.onTileSetRelease, args=event)
         tileSet = event.obj
-        tileSet.Reparent(self)
+        tileSet.accept(self)
 
     def onTileHover(self, event):
         pos = event.pos
@@ -110,12 +103,15 @@ class BoardPanel(TileWidgetView):
         if tileSetWidget:
             tileSetWidget.onTileRelease(event)
         else:
-            log.debug ("released on board:", (x,y), event.obj.tile.toString())
-            event.obj.Reparent(self)
-            #move the tile to the board, this will result in a new instance of model.Set containing the tile:
-            tile.move(self.board) 
-            #tile.container is an instance of model.Set, set the position on the board:
-            tile.getContainer().setPos((x-3,y-4))
+            if (util.insideRect(event.obj.GetRect(), self.GetRect())):
+                log.debug ("released on board:", (x,y), event.obj.tile.toString())
+                event.obj.accept(self)
+                #move the tile to the board, this will result in a new instance of model.Set containing the tile:
+                tile.move(self.board) 
+                #tile.container is an instance of model.Set, set the position on the board:
+                tile.getContainer().setPos((x-3,y-4))
+            else:
+                event.obj.reject()
         event.obj.Raise()
         self.Refresh()
 
@@ -193,6 +189,15 @@ class PlatePanel(TileWidgetView):
         self.refreshTiles()
         self.Refresh()
 
+    def onTileRelease(self, event):
+        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.tile))
+        tile = event.obj.tile
+        if tile.plate == self.player.getPlate():
+            event.obj.accept(self)
+        else:
+            event.obj.reject()
+
+
 class GamePanel(TileWidgetView):    
     def __init__(self, parent):
         super().__init__(parent=parent, size=(800,600))
@@ -205,7 +210,8 @@ class GamePanel(TileWidgetView):
 
         self.boardPanel = BoardPanel(self)
         self.platePanel = PlatePanel(self)
-        self.platePanel.Bind(EVT_TILEWIDGETVIEW_ADD, self.boardPanel.onNewTileWidget)
+        # board panel should accept tiles dragged from plate panel and dropped on board panel
+        self.platePanel.addTileWidgetDropTarget(self.boardPanel)
         vbox.Add(self.boardPanel, 5, wx.EXPAND)
         vbox.Add(self.platePanel, 2, wx.EXPAND)
 

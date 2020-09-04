@@ -6,6 +6,14 @@ def rectsOverlap(r1, r2):
     else:
         return True
 
+def insideRect(r1, r2):
+    x1,y1,w1,h1 = r1
+    x2,y2,w2,h2 = r2
+    if (x1>=x2) and (y1>=y2) and (x1+w1<=x2+w2) and (y1+h1<=y2+h2):
+        return True
+    else:
+        return False
+
 def filteredCount(function, collection):
     filtered = filter(function, collection)
     count = 0

@@ -105,7 +105,8 @@ class TileSetWidget(TileWidgetView):
         mx,my = self.ScreenToClient(wx.GetMousePosition())
         
         rx = tx-sx #the relative x-pos of the dropped tile within the set
-        tw = int(w/self.set.getSize()) #calculated width of a tile based on widget size and number of tiles currently in the set
+        n = self.set.getSize()
+        tw = int(w/n) if n>0 else 0 #calculated width of a tile based on widget size and number of tiles currently in the set
         if tw>0:
             posInSet = int((rx-0.5*tw)/tw)+2
         
@@ -150,9 +151,11 @@ class TileSetWidget(TileWidgetView):
         x,y = event.pos
         self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         if tile.move(self.set, self.newTilePos):
-            tileWidget.Reparent(self)
+            tileWidget.accept(self)
             self.highlight = False
             self.Refresh()
+        else:
+            tileWidget.reject()
         self.newTilePos = None
         self.refreshLayout()
 
