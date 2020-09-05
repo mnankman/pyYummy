@@ -12,10 +12,7 @@ import draggable
 import model
 from controller import Controller
 import util
-
-from log import Log
-log = Log()
-log.setVerbosity(Log.VERBOSITY_DEBUG)
+import log
 
 RESOURCES="src/resource"
 
@@ -79,7 +76,7 @@ class MainWindow(wx.Frame):
         self.SetIcon(icon)
 
         self.controller = Controller()
-        self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
+        #self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
 
         self.gamePanel = GamePanel(self)
         self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
@@ -117,10 +114,8 @@ class MainWindow(wx.Frame):
         self.Bind(event=wx.EVT_MENU, handler=self.onUserShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
 
     def onMsgNewPlayer(self, payload):
-        log.debug(type(self),"received",payload)
+        log.debug(function=self.onMsgNewPlayer, args=payload)
         player = payload["player"]
-        if player:
-            self.controller.start(player)
 
     def onUserExit(self, e):
         #answer = self.exitDialog.ShowModal()
@@ -131,6 +126,8 @@ class MainWindow(wx.Frame):
     def onUserNewGame(self, e):
         self.controller.newGame(2)
         self.controller.addPlayer("player1")
+        self.controller.addPlayer("player2")
+        self.controller.start()
 
     def onUserSaveGame(self, e):
         # Create open file dialog

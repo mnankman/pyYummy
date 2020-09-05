@@ -2,8 +2,7 @@ import unittest
 from model import *
 from pubsub import MessageQueue
 
-from log import Log
-log = Log()
+import log
 log.setVerbosity(Log.VERBOSITY_VERBOSE)
 
 class ModelTestMethods(unittest.TestCase):

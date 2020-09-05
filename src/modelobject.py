@@ -1,9 +1,6 @@
 from pubsub import Publisher
 from persistentobject import PersistentObject
-
-from log import Log
-log = Log()
-#log.setVerbosity(Log.VERBOSITY_VERBOSE)
+import log
 
 class ModelObject(PersistentObject, Publisher):
     EVENTS = ["msg_object_modified", "msg_new_child"]

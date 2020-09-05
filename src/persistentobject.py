@@ -1,9 +1,6 @@
 import util
-
-from log import Log
-log = Log()
-#log.setVerbosity(Log.VERBOSITY_VERBOSE)
-    
+import log
+   
 class PersistentObject:
     """
     This class provides the methods necessary for persisting instance data and 

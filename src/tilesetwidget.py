@@ -3,11 +3,9 @@ import draggable
 from tilewidgetview import TileWidgetView
 import model
 import util
+import log
 from styler import PaintStyler
 from tilewidget import TileWidget
-
-from log import Log
-log = Log()
 
 class TileSetWidget(TileWidgetView):  
     normalPenColor = 'Black'

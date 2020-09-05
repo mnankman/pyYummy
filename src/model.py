@@ -2,10 +2,7 @@ import random
 import util
 from pubsub import Publisher
 from modelobject import ModelObject
-
-from log import Log
-log = Log()
-#log.setVerbosity(Log.VERBOSITY_VERBOSE)
+import log
 
 class GameConstants:
     BLACK = 0
@@ -263,7 +260,7 @@ class TileContainer(ModelObject):
         return tile.id() in self.__tiles
     
     def __removeTile(self, tile):
-        log.debug(function=self.__removeTile, args=tile.toString())
+        #log.debug(function=self.__removeTile, args=tile.toString())
         tileId = tile.id()
         assert self.containsTile(tile)
         i = self.__tiles.index(tileId)
@@ -289,7 +286,7 @@ class TileContainer(ModelObject):
         """
         fitPos = self.tileFitPosition(tile, pos)
 
-        log.debug(function=self.addTile, args=(tile.toString(),pos), returns=fitPos)
+        #log.debug(function=self.addTile, args=(tile.toString(),pos), returns=fitPos)
 
         if fitPos>0:
             self.setTile(tile)
@@ -695,8 +692,10 @@ class Game(ModelObject):
         self.pile = Pile(self)
         self.__maxPlayers = maxPlayers
         self.__currentPlayer = None
+        self.__currentPlayerNr = None
         self.persist("maxPlayers")
         self.persist("currentPlayer")
+        self.persist("currentPlayerNr")
         
     def reset(self):
         TileFactory.init() 
@@ -706,6 +705,10 @@ class Game(ModelObject):
         
     def setCurrentPlayer(self, name):
         self.__currentPlayer = name
+        self.setModified()
+        
+    def setCurrentPlayerNr(self, nr):
+        self.__currentPlayerNr = int(nr)
         self.setModified()
         
     def setMaxPlayers(self, maxPlayers):
@@ -731,12 +734,12 @@ class Game(ModelObject):
                 self._players.append(Player(self, name))
                 self.setModified()
 
-    def start(self, player):
-        log.trace(function=self.start, args=player)
-        self.__currentPlayer = player.getName()
+    def start(self):
+        log.trace(function=self.start)
         for p in self._players:
             for i in range(14):
                 p.pickTile()
+        self.__currentPlayerNr = 0
 
     def getPlayerByName(self, name):
         player = None
@@ -748,10 +751,16 @@ class Game(ModelObject):
 
     def getCurrentPlayer(self):
         cp = None
-        if self.__currentPlayer:
-            cp = self.getPlayerByName(self.__currentPlayer)
+        log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
+        if self.__currentPlayerNr!=None and self.__currentPlayerNr in range(len(self._players)):
+            cp = self._players[self.__currentPlayerNr]
         if not cp: log.error(function=self.getCurrentPlayer, returns=cp)
         return cp
+
+    def nextTurn(self):
+        p = self.__currentPlayerNr+1
+        if p>=len(self._players): p = 0
+        self.setCurrentPlayerNr(p)
     
     def validate(self):
         return self.board.validateSets()==0
@@ -761,6 +770,7 @@ class Game(ModelObject):
         self.board.cleanUp(True)
         # recursively clear the modified flag of all ModelObject instances under Game
         self.clearModified(True)
+        self.nextTurn()
 
     def toString(self):
         s = "\ngame(" + str(len(self._players)) + " players):\n"
@@ -794,8 +804,8 @@ class Model(Publisher):
         self.currentGame = Game(n)
         self.dispatch("msg_new_game", {"game": self.currentGame})
 
-    def start(self, player):
-        self.currentGame.start(player)
+    def start(self):
+        self.currentGame.start()
         self.rememberState()
 
     def commitMoves(self):
@@ -807,6 +817,10 @@ class Model(Publisher):
         else:
             self.getCurrentGame().commit()
             self.rememberState()
+
+    def nextTurn(self):
+        log.trace(function=self.nextTurn)
+
 
     def loadGame(self, data):
         log.trace(function=self.loadGame, args=data)

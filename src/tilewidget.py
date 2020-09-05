@@ -1,10 +1,8 @@
 import wx
 from draggable import DraggablePanel
 import model
+import log
 from styler import PaintStyler
-
-from log import Log
-log = Log()
 
 RESOURCES="src/resource"
 STYLES = ["TileWidget:black", "TileWidget:blue", "TileWidget:red", "TileWidget:orange"]

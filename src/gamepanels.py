@@ -5,9 +5,7 @@ from tilewidgetview import TileWidgetView
 import draggable
 import model
 import util
-
-from log import Log
-log = Log()
+import log
 
 class BoardPanel(TileWidgetView):    
     def __init__(self, parent):
@@ -123,11 +121,18 @@ class PlatePanel(TileWidgetView):
         self.SetBackgroundColour('#CCCCCC')
         self.player = None
         self.sortMethod = 0
+
+        self.playerInfo = wx.TextCtrl(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.Panel(self), 4, wx.EXPAND)
+        sizer.Add(self.playerInfo, 1, wx.EXPAND)
+        self.SetSizer(sizer)
         
     def setPlayer(self, player):
         if not player: return
         assert isinstance(player, model.Player)
         self.player = player
+        self.playerInfo.SetValue(player.getName())
         self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
         
     def getPlayer(self):
@@ -163,18 +168,15 @@ class PlatePanel(TileWidgetView):
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
 
-    def refresh(self):
-        self.refreshTiles()
+    def refresh(self, player=None):
+        if self.player == player:
+            self.refreshTiles()
+        else:
+            self.reset(player)
         self.Refresh()
 
     def onMsgPlayerModified(self, payload):
-        log.debug(type(self),"received",payload)
-        self.refresh()
-
-    def onMsgNewPlayer(self, payload):
-        log.debug(type(self),"received",payload)
-        player = payload["player"]
-        self.setPlayer(player)
+        log.debug(function=self.onMsgPlayerModified, args=payload)
         self.refresh()
 
     def toggleSort(self):
@@ -221,13 +223,13 @@ class GamePanel(TileWidgetView):
         self.game = game
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(game.board)
-        self.platePanel.reset(game.getCurrentPlayer())
+        #self.platePanel.reset(game.getCurrentPlayer())
 
     def getGame(self):
         return self.game
 
     def refresh(self):
-        self.platePanel.refresh()
+        self.platePanel.refresh(self.game.getCurrentPlayer())
         self.boardPanel.refresh()
         self.Refresh()
 
@@ -235,26 +237,40 @@ class GamePanel(TileWidgetView):
         self.platePanel.toggleSort()
 
     def onMsgNewGame(self, payload):
-        log.debug(type(self),"received",payload)
+        log.debug(function=self.onMsgNewGame, args=payload)
         game = payload["game"]
         if game:
             self.reset(game)
             
     def onMsgNewPlayer(self, payload):
-        log.debug(type(self),"received",payload)
+        log.debug(function=self.onMsgNewPlayer, args=payload)
         player = payload["player"]
-        self.platePanel.reset(player)
+        if player:
+            assert isinstance(player, model.Player)
+            player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
+        pass
 
     def onMsgGameLoaded(self, payload):
-        log.debug(type(self),"received",payload)
+        log.debug(function=self.onMsgGameLoaded, args=payload)
         game = payload["game"]
         if game:
             self.reset(game)
+            self.refresh()
 
     def onMsgGameModified(self, payload):
         if not "modified" in payload: #only process modifications of game object, not of its children
-            log.debug(type(self),"received",payload)
+            log.debug(function=self.onMsgGameModified, args=payload)
             self.refresh()
+
+    def onMsgPlayerModified(self, payload):
+#        if not "modified" in payload: #only process modifications of player object, not of its children
+        if True:
+            log.debug(function=self.onMsgPlayerModified, args=payload)
+            player = payload["object"]
+            if player:
+                assert isinstance(player, model.Player)
+                if self.game.getCurrentPlayer() == player:
+                    self.refresh()
 
     def onTileRelease(self, event):
         log.debug(function=self.onTileRelease, args=(event.pos, event.obj.tile))

@@ -1,8 +1,6 @@
 from model import *
-from log import Log
+import log
 import json
-
-log = Log()
 
 class Controller:
     def __init__(self):
@@ -17,8 +15,8 @@ class Controller:
     def newGame(self, n):
         self.model.newGame(n)
 
-    def start(self, player):
-        self.model.start(player)
+    def start(self):
+        self.model.start()
 
     def saveGame(self, path):
         self.saved = json.dumps(self.model.getCurrentGame().serialize())
@@ -52,6 +50,7 @@ class Controller:
         if player:
             player.pickTile()
             self.getCurrentGame().board.cleanUp(False)
+            self.getCurrentGame().nextTurn()
 
     def commit(self):
         self.model.commitMoves()

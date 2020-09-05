@@ -1,9 +1,7 @@
 import wx
 from tilewidget import TileWidget
 import draggable 
-
-from log import Log
-log = Log()
+import log
 
 class TileWidgetView(draggable.DraggablePanel):
     def __init__(self, parent, draggable=False, *args, **kwargs):
@@ -32,7 +30,7 @@ class TileWidgetView(draggable.DraggablePanel):
     def bindToTileWidgetDraggableEvents(self, target, tileWidget):
         assert tileWidget
         assert isinstance(tileWidget, TileWidget)
-        log.debug(function=self.bindToTileWidgetDraggableEvents, args=(target,tileWidget.tile))
+        #log.debug(function=self.bindToTileWidgetDraggableEvents, args=(target,tileWidget.tile))
         tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, target.onTileHover)
         tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, target.onTileRelease)
 

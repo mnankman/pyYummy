@@ -1,4 +1,5 @@
 import util
+
 class Log:
     VERBOSITY_NONE = 0
     VERBOSITY_ERROR = 1
@@ -86,4 +87,22 @@ class Log:
     def setVerbosity(self, verbosity):
         if Log.instance:
             Log.instance.setVerbosity(verbosity)
+
+log = Log()
+log.setVerbosity(Log.VERBOSITY_DEBUG)
+
+def debug(*args, **kwargs):
+    log.debug(*args, **kwargs)
+
+def warning(*args, **kwargs):
+    log.warning(*args, **kwargs)
+
+def error(*args, **kwargs):
+    log.error(*args, **kwargs)
+
+def trace(*args, **kwargs):
+    log.trace(*args, **kwargs)
+
+def setVerbosity(verbosity):
+    log.setVerbosity(verbosity)
 
