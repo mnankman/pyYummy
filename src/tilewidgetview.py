@@ -8,7 +8,7 @@ class TileWidgetView(draggable.DraggablePanel):
         super().__init__(parent, draggable, *args, **kwargs)
         self.__dropTargets__ = {}
         # by default, this instance is a drop target of itself
-        self.addTileWidgetDropTarget(self)
+        #self.addTileWidgetDropTarget(self)
             
     def getObjectsByType(self, type):
         result = []
@@ -30,7 +30,7 @@ class TileWidgetView(draggable.DraggablePanel):
     def bindToTileWidgetDraggableEvents(self, target, tileWidget):
         assert tileWidget
         assert isinstance(tileWidget, TileWidget)
-        #log.debug(function=self.bindToTileWidgetDraggableEvents, args=(target,tileWidget.tile))
+        log.debug(function=self.bindToTileWidgetDraggableEvents, args=(target,tileWidget.tile))
         tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, target.onTileHover)
         tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, target.onTileRelease)
 

@@ -25,10 +25,11 @@ ID_SENDMESSAGE=500
 ID_SHOWINSPECTIONTOOL=600
 
 class ButtonBar(wx.Panel):    
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, player):
         super().__init__(parent=parent, size=(800,45))
         self.parent = parent
         self.controller = controller
+        self.player = player
 
         self.btnFacePlay = wx.Bitmap(RESOURCES+"/yummy-btnface-play-28-white.png")
         self.btnFacePlus = wx.Bitmap(RESOURCES+"/yummy-btnface-plus-28-white.png")
@@ -55,15 +56,55 @@ class ButtonBar(wx.Panel):
         hbox.Add(btnSort, 0, wx.ALL, 2)
         self.SetSizer(hbox)
 
+    def checkPlayerTurn(self):
+        if not self.controller.isCurrentPlayer(self.player):
+            dlg = wx.MessageDialog(self, "It is not your turn!", 
+                            caption="Message", style=wx.OK|wx.CENTRE, pos=wx.DefaultPosition)
+            dlg.ShowModal()
+            return False
+        return True
+
     def onUserPlus(self, e):
-        self.controller.pick()
+        if self.checkPlayerTurn():
+            self.controller.pick()
 
     def onUserPlay(self, e):
-        self.controller.commit()
-        self.controller.getCurrentGame().print()
+        if self.checkPlayerTurn():
+            self.controller.commit()
+            self.controller.getCurrentGame().print()
 
     def onUserToggleSort(self, event):
         self.parent.onUserToggleSort(event)
+
+class GameWindow(wx.Frame):
+    def __init__(self, controller, playerName):
+        super().__init__(parent=None, title=playerName)
+        iconFile = RESOURCES+"/yummy-icon-28-white.png"
+        icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
+        self.SetIcon(icon)
+        
+        self.controller = controller
+
+        game = self.controller.getCurrentGame()
+        player = game.getPlayerByName(playerName)
+        assert isinstance(player, model.Player)
+
+        self.gamePanel = GamePanel(self, game, player)
+        #self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
+        self.controller.model.subscribe(self.gamePanel, "msg_game_loaded", self.gamePanel.onMsgGameLoaded)
+        #self.controller.model.subscribe(self.gamePanel, "msg_new_player", self.gamePanel.onMsgNewPlayer)
+
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(ButtonBar(self, self.controller, player))
+        self.sizer.Add(self.gamePanel, 1, wx.EXPAND)
+
+        self.SetSizer(self.sizer)
+        self.SetAutoLayout(1)
+        self.sizer.Fit(self)
+        self.Centre()
+
+    def onUserToggleSort(self, e):
+        self.gamePanel.toggleSort()
 
 class MainWindow(wx.Frame):
     def __init__(self):
@@ -76,22 +117,16 @@ class MainWindow(wx.Frame):
         self.SetIcon(icon)
 
         self.controller = Controller()
-        #self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
-
-        self.gamePanel = GamePanel(self)
-        self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
-        self.controller.model.subscribe(self.gamePanel, "msg_game_loaded", self.gamePanel.onMsgGameLoaded)
-        self.controller.model.subscribe(self.gamePanel, "msg_new_player", self.gamePanel.onMsgNewPlayer)
+        self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(ButtonBar(self, self.controller))
-        self.sizer.Add(self.gamePanel, 1, wx.EXPAND)
 
         self.create_menu()
         self.SetSizer(self.sizer)
-        self.SetAutoLayout(1)
+        #self.SetAutoLayout(1)
         self.sizer.Fit(self)
         self.Centre()
+        #self.SetClientSize(400,300)
         self.Show()
 
     def create_menu(self):
@@ -116,6 +151,16 @@ class MainWindow(wx.Frame):
     def onMsgNewPlayer(self, payload):
         log.debug(function=self.onMsgNewPlayer, args=payload)
         player = payload["player"]
+        btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
+        btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
+        self.sizer.Add(btnPlayer)
+        self.SetClientSize(400,300)
+        #self.Refresh()
+
+    def onUserPlayerClick(self, e):
+        playerName = e.GetEventObject().GetLabel() 
+        gw = GameWindow(self.controller, playerName)
+        gw.Show()
 
     def onUserExit(self, e):
         #answer = self.exitDialog.ShowModal()
@@ -156,8 +201,6 @@ class MainWindow(wx.Frame):
     def onUserShowInspectionTool(self, e):
         wx.lib.inspection.InspectionTool().Show()
 
-    def onUserToggleSort(self, e):
-        self.gamePanel.toggleSort()
 
 
 def start():

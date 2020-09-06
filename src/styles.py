@@ -90,3 +90,30 @@ def init():
         basedOn = "TileSetWidget:normal",
         elements = [wx.Brush("#00FF00", style=wx.BRUSHSTYLE_SOLID)]
     )
+
+    """
+    Style definitions for PlayerWidget
+    """
+
+    styleCat.addStyle(
+        styleName = "PlayerWidget:base",
+        elements=[
+            wx.Font(8, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
+                underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT),
+            wx.TRANSPARENT_PEN,
+            wx.TRANSPARENT_BRUSH,
+            styler.Colors(textForeground="White")
+        ],
+    )
+
+    styleCat.addStyle(
+        styleName = "PlayerWidget:waiting", 
+        basedOn = "PlayerWidget:base",
+        elements = [wx.Brush("#000000", style=wx.BRUSHSTYLE_SOLID)]
+    )
+
+    styleCat.addStyle(
+        styleName = "PlayerWidget:playing", 
+        basedOn = "PlayerWidget:base",
+        elements = [wx.Brush("#006633", style=wx.BRUSHSTYLE_SOLID)]
+    )

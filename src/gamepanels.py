@@ -2,6 +2,7 @@ import wx
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
 from tilewidgetview import TileWidgetView
+from playerwidget import PlayerWidget
 import draggable
 import model
 import util
@@ -116,23 +117,16 @@ class BoardPanel(TileWidgetView):
             self.addTileSetWidget(payload["child"])
 
 class PlatePanel(TileWidgetView):    
-    def __init__(self, parent):
+    def __init__(self, parent, player):
         super().__init__(parent)
         self.SetBackgroundColour('#CCCCCC')
-        self.player = None
         self.sortMethod = 0
-
-        self.playerInfo = wx.TextCtrl(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(wx.Panel(self), 4, wx.EXPAND)
-        sizer.Add(self.playerInfo, 1, wx.EXPAND)
-        self.SetSizer(sizer)
+        self.setPlayer(player)
         
     def setPlayer(self, player):
         if not player: return
         assert isinstance(player, model.Player)
         self.player = player
-        self.playerInfo.SetValue(player.getName())
         self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
         
     def getPlayer(self):
@@ -150,9 +144,8 @@ class PlatePanel(TileWidgetView):
             else:
                 return plate.getTilesGroupedByColor()
 
-    def reset(self, player):
+    def reset(self):
         self.resetTileWidgets()
-        self.setPlayer(player)
         self.refreshTiles()
 
     def refreshTiles(self):
@@ -168,11 +161,8 @@ class PlatePanel(TileWidgetView):
                 tw,th = tileWidget.GetSize()
                 tx = tx+tw+1
 
-    def refresh(self, player=None):
-        if self.player == player:
-            self.refreshTiles()
-        else:
-            self.reset(player)
+    def refresh(self):
+        self.refreshTiles()
         self.Refresh()
 
     def onMsgPlayerModified(self, payload):
@@ -197,23 +187,31 @@ class PlatePanel(TileWidgetView):
 
 
 class GamePanel(TileWidgetView):    
-    def __init__(self, parent):
+    def __init__(self, parent, game, player):
         super().__init__(parent=parent, size=(800,600))
 #        super().__init__(parent=parent)
         self.SetBackgroundColour('#CCCCCC')
+        assert isinstance(game, model.Game)
         self.game = None
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
 
+        self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
+        for p in game.getPlayers():
+            self.playerBox.Add(PlayerWidget(self, p))
+
         self.boardPanel = BoardPanel(self)
-        self.platePanel = PlatePanel(self)
+        self.platePanel = PlatePanel(self, player)
         self.platePanel.addTileWidgetDropTarget(self)
         self.boardPanel.addTileWidgetDropTarget(self)
-        vbox.Add(self.boardPanel, 5, wx.EXPAND)
-        vbox.Add(self.platePanel, 2, wx.EXPAND)
+        vbox.Add(self.boardPanel, 10, wx.EXPAND)
+        vbox.Add(self.platePanel, 4, wx.EXPAND)
+        vbox.Add(self.playerBox, 1, wx.EXPAND)
 
         self.SetSizer(vbox)
+
+        self.reset(game)
 
     def reset(self, game):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
@@ -223,13 +221,13 @@ class GamePanel(TileWidgetView):
         self.game = game
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(game.board)
-        #self.platePanel.reset(game.getCurrentPlayer())
+        self.platePanel.reset()
 
     def getGame(self):
         return self.game
 
     def refresh(self):
-        self.platePanel.refresh(self.game.getCurrentPlayer())
+        self.platePanel.refresh()
         self.boardPanel.refresh()
         self.Refresh()
 

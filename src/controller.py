@@ -42,6 +42,10 @@ class Controller:
     def getCurrentPlayer(self):
         return self.model.getCurrentPlayer()
 
+    def isCurrentPlayer(self, player):
+        assert isinstance(player, Player)
+        return self.model.getCurrentPlayer() == player
+
     def getPlayer(self, name):
         return self.model.getPlayer(name)
 

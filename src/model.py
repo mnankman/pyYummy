@@ -673,6 +673,9 @@ class Player(ModelObject):
     def getPlate(self):
         return self.plate
 
+    def isPlayerTurn(self):
+        return self.game.getCurrentPlayer() == self
+
     def pickTile(self):
         return self.game.pile.pickTile(self)
 
@@ -751,11 +754,14 @@ class Game(ModelObject):
 
     def getCurrentPlayer(self):
         cp = None
-        log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
+        #log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
         if self.__currentPlayerNr!=None and self.__currentPlayerNr in range(len(self._players)):
             cp = self._players[self.__currentPlayerNr]
         if not cp: log.error(function=self.getCurrentPlayer, returns=cp)
         return cp
+
+    def getPlayers(self):
+        return self._players
 
     def nextTurn(self):
         p = self.__currentPlayerNr+1
