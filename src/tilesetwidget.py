@@ -27,9 +27,9 @@ class TileSetWidget(TileWidgetView):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
 
-    def __del__(self):
-        assert False
+    def Destroy(self):
         self.set.unsubscribe("msg_object_modified", self)
+        super().Destroy()
 
     def getStateStr(self):
         stateStr = str(self.set.getSize())
@@ -115,12 +115,18 @@ class TileSetWidget(TileWidgetView):
         return posInSet
       
     def rebuild(self):
+        self.resetTileWidgets()
         for tile in self.set.getOrderedTiles():
-            tileWidget = TileWidget(self, tile)
-            self.addTileWidget(tileWidget)
-            tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
-            tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
+            self.rebuildTile(tile)
         self.refreshLayout()
+
+    def rebuildTile(self, tile):
+        tileWidget = TileWidget(self, tile)
+        self.addTileWidget(tileWidget)
+        tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
+        tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
+        tileWidget.Bind(draggable.EVT_DRAGGABLE_ACCEPT, self.onTileAccept)  
+        return tileWidget
     
     def refreshLayout(self):
         tw,th = TileWidget.defaultSize()
@@ -129,11 +135,8 @@ class TileSetWidget(TileWidgetView):
         for tile in self.set.getOrderedTiles():
             tileWidget = self.findTileWidgetById(tile.id())
             if tileWidget==None:
-                tileWidget = TileWidget(self, tile)
-                self.addTileWidget(tileWidget)
-                tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
-                tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
-            elif tileWidget and not(tileWidget.isBeingDragged()):
+                tileWidget = self.rebuildTile(tile)  
+            if tileWidget and not(tileWidget.isBeingDragged()):
                 w,h = tileWidget.GetSize()
                 tileWidget.Move((xOffset, 3))
                 tileWidget.Refresh()
@@ -165,6 +168,9 @@ class TileSetWidget(TileWidgetView):
             tileWidget.reject()
         self.newTilePos = None
         self.refreshLayout()
+
+    def onTileAccept(self, event):
+        self.rebuild()
 
     def onMsgSetModified(self, payload):
         log.debug(function=self.onMsgSetModified, args=payload)

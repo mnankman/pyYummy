@@ -76,12 +76,8 @@ class BoardPanel(TileWidgetView):
             if tileWidget and not(tileWidget.isBeingDragged()):
                 tileWidget.Reparent(tileSetWidget)
         tileSetWidget.refreshLayout()
-        tileSetWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.onTileSetHover)
         tileSetWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileSetRelease)
 
-    def onTileSetHover(self, event):
-        pos = event.pos
-    
     def onTileSetRelease(self, event):
         log.debug(function=self.onTileSetRelease, args=event)
         tileSet = event.obj
@@ -89,13 +85,12 @@ class BoardPanel(TileWidgetView):
 
     def onTileHover(self, event):
         #log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
-        pos = event.pos
         self.triggerTileSetWidgets(event)
 
     def onTileRelease(self, event):
         log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
         x,y = self.getEventPosition(event)
-        tx,ty,tw,th = self.getEventObjectRect(event)
+        tw,th = event.obj.GetSize()
         tile = event.obj.tile
         tileSetWidget = self.findTileSetWidgetByOverlap((x,y,tw,th))
         if tileSetWidget:
@@ -158,7 +153,6 @@ class PlatePanel(TileWidgetView):
 
     def refreshTiles(self):
         if self.player and isinstance(self.player, model.Player):
-            c = 0
             tx, ty = (0, 0)
             for t in self.getPlateValues():
                 tileWidget = self.findTileWidgetById(t.id())
@@ -244,7 +238,7 @@ class GamePanel(TileWidgetView):
 
     def refresh(self):
         self.platePanel.refresh()
-        if self.player.isPlayerTurn():
+        if True or self.player.isPlayerTurn():
             self.boardPanel.refresh()            
         else:
             self.boardPanel.reset(self.game.board)

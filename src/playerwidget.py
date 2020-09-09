@@ -22,8 +22,9 @@ class PlayerWidget(wx.Panel):
 
         self.reset(player)
 
-    def __del__(self):
-        self.player.unsubscribe("msg_object_modified", self)
+    def Destroy(self):
+        self.set.unsubscribe("msg_object_modified", self)
+        super().Destroy()
 
     def reset(self, player=None):
         if self.player:

@@ -4,6 +4,7 @@ import log
 
 DraggableHoverEvent, EVT_DRAGGABLE_HOVER = wx.lib.newevent.NewEvent()
 DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
+DraggableAcceptEvent, EVT_DRAGGABLE_ACCEPT = wx.lib.newevent.NewEvent()
 
 class DraggablePanel(wx.Panel):
     def __init__(self, parent, draggable=True, *args, **kwargs):
@@ -33,6 +34,8 @@ class DraggablePanel(wx.Panel):
         self.Move((mx-ox, my-oy))
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
+        acceptEvt = DraggableAcceptEvent(pos=self.GetScreenPosition(), obj=self)
+        wx.PostEvent(self, acceptEvt)
 
     def reject(self):
         log.debug(function=self.reject)
