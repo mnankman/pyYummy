@@ -42,19 +42,16 @@ class Controller:
     def getCurrentPlayer(self):
         return self.model.getCurrentPlayer()
 
-    def isCurrentPlayer(self, player):
-        assert isinstance(player, Player)
-        return self.model.getCurrentPlayer() == player
-
     def getPlayer(self, name):
         return self.model.getPlayer(name)
 
     def pick(self):
         player = self.getCurrentPlayer()
-        if player:
-            player.pickTile()
-            self.getCurrentGame().board.cleanUp(False)
-            self.getCurrentGame().nextTurn()
+        game = self.getCurrentGame()
+        if game and player:
+            game.getPile().pickTile(player)
+            game.board.cleanUp(False)
+            game.nextTurn()
 
     def commit(self):
         self.model.commitMoves()

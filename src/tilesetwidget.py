@@ -27,6 +27,10 @@ class TileSetWidget(TileWidgetView):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
 
+    def __del__(self):
+        assert False
+        self.set.unsubscribe("msg_object_modified", self)
+
     def getStateStr(self):
         stateStr = str(self.set.getSize())
         if self.newTilePos != None:
@@ -122,9 +126,14 @@ class TileSetWidget(TileWidgetView):
         tw,th = TileWidget.defaultSize()
         xOffset = 5
         self.NewTilePosList = [xOffset]
-        for tId in self.set.getOrder():
-            tileWidget = self.findTileWidgetById(tId)
-            if tileWidget and not(tileWidget.isBeingDragged()):
+        for tile in self.set.getOrderedTiles():
+            tileWidget = self.findTileWidgetById(tile.id())
+            if tileWidget==None:
+                tileWidget = TileWidget(self, tile)
+                self.addTileWidget(tileWidget)
+                tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
+                tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
+            elif tileWidget and not(tileWidget.isBeingDragged()):
                 w,h = tileWidget.GetSize()
                 tileWidget.Move((xOffset, 3))
                 tileWidget.Refresh()

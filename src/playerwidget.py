@@ -12,13 +12,23 @@ class PlayerWidget(wx.Panel):
 
     def __init__(self, parent, player):
         super().__init__(parent, size=PlayerWidget.defaultSize(), style=wx.CLIP_CHILDREN)
+        self.player = None
 
         if not PlayerWidget.yummyIcon:
             PlayerWidget.yummyIcon = wx.Bitmap(RESOURCES+"/yummy-icon-28-white.png")
 
         self.paintStyler = PaintStyler()
-        self.player = player
         self.Bind(wx.EVT_PAINT,self.onPaint)
+
+        self.reset(player)
+
+    def __del__(self):
+        self.player.unsubscribe("msg_object_modified", self)
+
+    def reset(self, player=None):
+        if self.player:
+            self.player.unsubscribe("msg_object_modified", self)
+        self.player = player
         self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
     
     def playerInfo(self):
@@ -49,6 +59,6 @@ class PlayerWidget(wx.Panel):
         dc.DrawText(txt, tx, ty)
 
     def onMsgPlayerModified(self, payload):
-        log.debug(function=self.onMsgPlayerModified, args=payload)
+        #log.debug(function=self.onMsgPlayerModified, args=payload)
         self.Refresh()
 

@@ -711,6 +711,7 @@ class Game(ModelObject):
         self.setModified()
         
     def setCurrentPlayerNr(self, nr):
+        log.debug(function=self.setCurrentPlayerNr, args=nr)
         self.__currentPlayerNr = int(nr)
         self.setModified()
         
@@ -791,7 +792,7 @@ class Game(ModelObject):
 
 
 class Model(Publisher):
-    EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded"]
+    EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded", "msg_game_reverted"]
     def __init__(self):
         self.currentGame = None
         self.lastValidState = None
@@ -818,15 +819,19 @@ class Model(Publisher):
         log.trace(function=self.commitMoves)
         if not self.getCurrentGame().validate():
             log.trace("There are invalid sets on the board, revert to last valid state")
-            if self.lastValidState:
-                self.loadGame(self.lastValidState)
+            self.revertGame()
         else:
             self.getCurrentGame().commit()
             self.rememberState()
 
-    def nextTurn(self):
-        log.trace(function=self.nextTurn)
-
+    def revertGame(self):
+        if self.lastValidState:
+            log.trace(function=self.revertGame)
+            if self.currentGame:
+                del self.currentGame
+            self.currentGame = Game(0)
+            self.currentGame.deserialize(self.lastValidState)
+            self.dispatch("msg_game_reverted", {"game": self.currentGame})
 
     def loadGame(self, data):
         log.trace(function=self.loadGame, args=data)

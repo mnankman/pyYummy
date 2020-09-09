@@ -11,7 +11,6 @@ import log
 class BoardPanel(TileWidgetView):    
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
         self.board = None
         self.SetBackgroundColour('#888888')
         
@@ -20,8 +19,10 @@ class BoardPanel(TileWidgetView):
         destroys all instances of TileSetWidget that are currently being displayed        
         """
         assert isinstance(board, model.Board)
+        log.debug(function=self.reset, args=board)
         self.board = board
         self.board.subscribe(self, "msg_new_child", self.onMsgBoardNewChild)
+        self.board.subscribe(self, "msg_object_modified", self.onMsgBoardModified)
         self.rebuild()
 
     def rebuild(self):
@@ -87,7 +88,7 @@ class BoardPanel(TileWidgetView):
         tileSet.accept(self)
 
     def onTileHover(self, event):
-        log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
+        #log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
         pos = event.pos
         self.triggerTileSetWidgets(event)
 
@@ -111,8 +112,14 @@ class BoardPanel(TileWidgetView):
                 event.obj.reject()
         self.Refresh()
 
+    def onMsgBoardModified(self, payload):
+        if not "modified" in payload: #only process modifications of board object, not of its children
+            log.debug("*******", function=self.onMsgBoardModified, args=payload)
+            self.rebuild()
+            self.Refresh()
+
     def onMsgBoardNewChild(self, payload):
-        log.debug(type(self),"received",payload)
+        log.debug(function=self.onMsgBoardNewChild)
         if payload["object"] == self.board and payload["child"] != None:
             self.addTileSetWidget(payload["child"])
 
@@ -144,7 +151,8 @@ class PlatePanel(TileWidgetView):
             else:
                 return plate.getTilesGroupedByColor()
 
-    def reset(self):
+    def reset(self, player=None):
+        self.setPlayer(player)
         self.resetTileWidgets()
         self.refreshTiles()
 
@@ -166,7 +174,7 @@ class PlatePanel(TileWidgetView):
         self.Refresh()
 
     def onMsgPlayerModified(self, payload):
-        log.debug(function=self.onMsgPlayerModified, args=payload)
+        #log.debug(function=self.onMsgPlayerModified, args=payload)
         self.refresh()
 
     def toggleSort(self):
@@ -192,17 +200,17 @@ class GamePanel(TileWidgetView):
 #        super().__init__(parent=parent)
         self.SetBackgroundColour('#CCCCCC')
         assert isinstance(game, model.Game)
-        self.game = None
+        self.game = game
+        self.player = player
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
 
         self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
-        for p in game.getPlayers():
-            self.playerBox.Add(PlayerWidget(self, p))
+        self.createPlayerWidgets()
 
         self.boardPanel = BoardPanel(self)
-        self.platePanel = PlatePanel(self, player)
+        self.platePanel = PlatePanel(self, self.player)
         self.platePanel.addTileWidgetDropTarget(self)
         self.boardPanel.addTileWidgetDropTarget(self)
         vbox.Add(self.boardPanel, 10, wx.EXPAND)
@@ -218,17 +226,28 @@ class GamePanel(TileWidgetView):
             tileSetWidget.Destroy()
         for tileWidget in self.getObjectsByType(TileWidget):
             tileWidget.Destroy()
+        for playerWidget in self.getObjectsByType(PlayerWidget):
+            player = game.getPlayerByName(playerWidget.player.getName())
+            playerWidget.reset(player)
         self.game = game
+        self.player = game.getPlayerByName(self.player.getName())
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-        self.boardPanel.reset(game.board)
-        self.platePanel.reset()
+        self.boardPanel.reset(self.game.board)
+        self.platePanel.reset(self.player)
+
+    def createPlayerWidgets(self):
+        for p in self.game.getPlayers():
+            self.playerBox.Add(PlayerWidget(self, p))
 
     def getGame(self):
         return self.game
 
     def refresh(self):
         self.platePanel.refresh()
-        self.boardPanel.refresh()
+        if self.player.isPlayerTurn():
+            self.boardPanel.refresh()            
+        else:
+            self.boardPanel.reset(self.game.board)
         self.Refresh()
 
     def toggleSort(self):
@@ -255,9 +274,16 @@ class GamePanel(TileWidgetView):
             self.reset(game)
             self.refresh()
 
+    def onMsgGameReverted(self, payload):
+        log.debug(function=self.onMsgGameLoaded, args=payload)
+        game = payload["game"]
+        if game:
+            self.reset(game)
+            self.refresh()
+
     def onMsgGameModified(self, payload):
         if not "modified" in payload: #only process modifications of game object, not of its children
-            log.debug(function=self.onMsgGameModified, args=payload)
+            log.debug("*******", self.player.getName(), function=self.onMsgGameModified, args=payload)
             self.refresh()
 
     def onMsgPlayerModified(self, payload):

@@ -29,7 +29,7 @@ class ButtonBar(wx.Panel):
         super().__init__(parent=parent, size=(800,45))
         self.parent = parent
         self.controller = controller
-        self.player = player
+        self.playerName = player.getName()
 
         self.btnFacePlay = wx.Bitmap(RESOURCES+"/yummy-btnface-play-28-white.png")
         self.btnFacePlus = wx.Bitmap(RESOURCES+"/yummy-btnface-plus-28-white.png")
@@ -57,7 +57,8 @@ class ButtonBar(wx.Panel):
         self.SetSizer(hbox)
 
     def checkPlayerTurn(self):
-        if not self.controller.isCurrentPlayer(self.player):
+        player = self.controller.getCurrentGame().getPlayerByName(self.playerName)
+        if not player.isPlayerTurn():
             dlg = wx.MessageDialog(self, "It is not your turn!", 
                             caption="Message", style=wx.OK|wx.CENTRE, pos=wx.DefaultPosition)
             dlg.ShowModal()
@@ -85,17 +86,18 @@ class GameWindow(wx.Frame):
         
         self.controller = controller
 
-        game = self.controller.getCurrentGame()
-        player = game.getPlayerByName(playerName)
-        assert isinstance(player, model.Player)
+        self.game = self.controller.getCurrentGame()
+        self.player = self.game.getPlayerByName(playerName)
+        assert isinstance(self.player, model.Player)
 
-        self.gamePanel = GamePanel(self, game, player)
+        self.gamePanel = GamePanel(self, self.game, self.player)
         #self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
         self.controller.model.subscribe(self.gamePanel, "msg_game_loaded", self.gamePanel.onMsgGameLoaded)
+        self.controller.model.subscribe(self.gamePanel, "msg_game_reverted", self.gamePanel.onMsgGameReverted)
         #self.controller.model.subscribe(self.gamePanel, "msg_new_player", self.gamePanel.onMsgNewPlayer)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(ButtonBar(self, self.controller, player))
+        self.sizer.Add(ButtonBar(self, self.controller, self.player))
         self.sizer.Add(self.gamePanel, 1, wx.EXPAND)
 
         self.SetSizer(self.sizer)
@@ -103,12 +105,14 @@ class GameWindow(wx.Frame):
         self.sizer.Fit(self)
         self.Centre()
 
+
     def onUserToggleSort(self, e):
         self.gamePanel.toggleSort()
 
 class MainWindow(wx.Frame):
     def __init__(self):
         super().__init__(parent=None, title='Yummy')
+        self.gameWindows = {}
 
         styles.init()
 
@@ -118,6 +122,7 @@ class MainWindow(wx.Frame):
 
         self.controller = Controller()
         self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
+        self.controller.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -128,7 +133,8 @@ class MainWindow(wx.Frame):
         self.Centre()
         #self.SetClientSize(400,300)
         self.Show()
-
+        self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
+        
     def create_menu(self):
         menuBar = wx.MenuBar()
         debugMenu = wx.Menu()
@@ -148,27 +154,56 @@ class MainWindow(wx.Frame):
         self.Bind(event=wx.EVT_MENU, handler=self.onUserExit, id=ID_EXIT)
         self.Bind(event=wx.EVT_MENU, handler=self.onUserShowInspectionTool, id=ID_SHOWINSPECTIONTOOL)
 
-    def onMsgNewPlayer(self, payload):
-        log.debug(function=self.onMsgNewPlayer, args=payload)
-        player = payload["player"]
+    def destroyGameWindows(self):
+        for btn, w in self.gameWindows.items():
+            btn.Destroy()
+            w.Destroy()
+        self.playerBtns = []
+        
+    def addPlayerButton(self, player): 
+        assert isinstance(player, model.Player)   
         btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
+        gw = GameWindow(self.controller, player.getName())
+        gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
+        self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
         self.sizer.Add(btnPlayer)
         self.SetClientSize(400,300)
         #self.Refresh()
 
+    def onMsgNewPlayer(self, payload):
+        log.debug(function=self.onMsgNewPlayer, args=payload)
+        self.addPlayerButton(payload["player"])
+
+    def onMsgGameLoaded(self, payload):
+        log.debug(function=self.onMsgNewPlayer, args=payload)
+        game = payload["game"]
+        assert isinstance(game, model.Game)
+        self.destroyGameWindows()
+        for player in game.getPlayers():
+            self.addPlayerButton(player)
+
     def onUserPlayerClick(self, e):
-        playerName = e.GetEventObject().GetLabel() 
-        gw = GameWindow(self.controller, playerName)
+        gw = self.gameWindows[e.GetEventObject()]
         gw.Show()
 
+    def onUserCloseMainWindow(self, e):
+        for w in self.gameWindows.values():
+            w.Destroy()
+        e.Skip()
+
+    def onUserCloseGameWindow(self, e):
+        log.debug(function=self.onUserCloseGameWindow, args=e.GetEventObject().player.getName())
+        if e.CanVeto():
+            e.GetEventObject().Hide()
+            e.Veto()
+
     def onUserExit(self, e):
-        #answer = self.exitDialog.ShowModal()
-        #if answer == wx.ID_YES:
-        if True:
-            self.Close(True) 
+        self.destroyGameWindows()
+        self.Close(True) 
 
     def onUserNewGame(self, e):
+        self.destroyGameWindows()
         self.controller.newGame(2)
         self.controller.addPlayer("player1")
         self.controller.addPlayer("player2")
