@@ -32,8 +32,9 @@ class DraggablePanel(wx.Panel):
 
     def accept(self, newParent):
         log.debug(function=self.accept)
-        self.Reparent(newParent)
-        mx,my = newParent.ScreenToClient(wx.GetMousePosition())
+        if self.isPortable():
+            self.Reparent(newParent)
+        mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
         ox,oy = self.mOffset
         self.Move((mx-ox, my-oy))
         self.__posBeforeDrag__ = None

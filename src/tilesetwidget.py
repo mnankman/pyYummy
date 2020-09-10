@@ -46,7 +46,7 @@ class TileSetWidget(TileWidgetView):
         self.Refresh()
 
     def onDragRelease(self, event):
-        x,y = event.pos
+        x,y = self.GetParent().ScreenToClient(event.pos)
         self.setPos((x,y))
 
     def onPaint(self, event):
@@ -91,6 +91,7 @@ class TileSetWidget(TileWidgetView):
         self.SetSize(numTiles*tw+10, th+10)
     
     def setPos(self, pos):
+        log.debug(function=self.setPos, args=pos)
         if pos:
             self.Move(pos)
             if self.set and isinstance(self.set, model.Set):
