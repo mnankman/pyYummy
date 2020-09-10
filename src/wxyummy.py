@@ -126,14 +126,24 @@ class MainWindow(wx.Frame):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
+        #self.addTestTileWidgets()
+
         self.create_menu()
         self.SetSizer(self.sizer)
         #self.SetAutoLayout(1)
-        self.sizer.Fit(self)
+        #self.sizer.Fit(self)
         self.Centre()
-        #self.SetClientSize(400,300)
+        self.SetClientSize(400,300)
         self.Show()
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
+
+    def addTestTileWidgets(self):
+        tc = model.TileContainer(None)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        for c in model.GameConstants.TILECOLORS:
+            hbox.Add(TileWidget(self, model.Tile.create(200+c, c, 10, tc)))
+        self.sizer.Add(hbox)
+
         
     def create_menu(self):
         menuBar = wx.MenuBar()
@@ -168,8 +178,7 @@ class MainWindow(wx.Frame):
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
         self.sizer.Add(btnPlayer)
-        self.SetClientSize(400,300)
-        #self.Refresh()
+        self.Refresh()
 
     def onMsgNewPlayer(self, payload):
         log.debug(function=self.onMsgNewPlayer, args=payload)

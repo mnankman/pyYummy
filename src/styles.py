@@ -13,7 +13,7 @@ def init():
     styleCat.addStyle(
         styleName = "TileWidget:base",
         elements=[
-            wx.Font(20, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
+            wx.Font(16, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
                 underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT),
             wx.TRANSPARENT_PEN,
             wx.TRANSPARENT_BRUSH,

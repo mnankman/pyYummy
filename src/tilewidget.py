@@ -33,16 +33,25 @@ class TileWidget(DraggablePanel):
     def drawBackground(self, dc):
         self.paintStyler.select(STYLES[self.color], dc)
         w,h = self.GetClientSize()
-        dc.DrawRoundedRectangle(1,1,w-1,h-1,3)
+        #dc.DrawRoundedRectangle(1,1,w-1,h-1,3)
         gc = wx.GraphicsContext.Create(dc)
-        brushColor = dc.GetBrush().GetColour()
         if gc:
-            gbrush = gc.CreateLinearGradientBrush(-10,-20,w,h,
+            brushColor = dc.GetBrush().GetColour()
+
+            gbrush = gc.CreateLinearGradientBrush(0,h,0,0,
                 brushColor.ChangeLightness(90), 
                 brushColor.ChangeLightness(120))
             gc.SetBrush(gbrush)
             path = gc.CreatePath()
-            path.AddRoundedRectangle(2,5,w-2,h-12,6)
+            path.AddRoundedRectangle(1,1,w-1,h-1,3)
+            gc.DrawPath(path)
+
+            gbrush = gc.CreateLinearGradientBrush(0,0,0,h,
+                brushColor.ChangeLightness(90), 
+                brushColor.ChangeLightness(120))
+            gc.SetBrush(gbrush)
+            path = gc.CreatePath()
+            path.AddRoundedRectangle(4,6,w-8,h-14,6)
             gc.DrawPath(path)
       
 
