@@ -4,8 +4,8 @@ import draggable
 import log
 
 class TileWidgetView(draggable.DraggablePanel):
-    def __init__(self, parent, draggable=False, *args, **kwargs):
-        super().__init__(parent, draggable, *args, **kwargs)
+    def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
+        super().__init__(parent, draggable, portable, *args, **kwargs)
         self.parent = parent
         self.__dropTargets__ = {}
         # by default, this instance is a drop target of itself

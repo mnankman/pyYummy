@@ -7,12 +7,13 @@ DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
 DraggableAcceptEvent, EVT_DRAGGABLE_ACCEPT = wx.lib.newevent.NewEvent()
 
 class DraggablePanel(wx.Panel):
-    def __init__(self, parent, draggable=True, *args, **kwargs):
+    def __init__(self, parent, draggable=True, portable=True, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.grandparent = parent.GetParent()
-        self.mOffset = (0,0)
+        self.mOffset = (0,0) #the relative pos within the dragged object where the mouse was clicked
         self.__draggable__ = draggable
         self.__dragged__ = False
+        self.__portable__ = portable #a portable draggable panel can be dragged out of the container
         self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
         self.Bind(wx.EVT_MOTION,  self.OnMouseMove)
         self.Bind(wx.EVT_LEFT_UP,  self.OnMouseUp)
@@ -26,10 +27,13 @@ class DraggablePanel(wx.Panel):
     def isDraggable(self):
         return self.__draggable__
 
+    def isPortable(self):
+        return self.__portable__
+
     def accept(self, newParent):
         log.debug(function=self.accept)
         self.Reparent(newParent)
-        mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
+        mx,my = newParent.ScreenToClient(wx.GetMousePosition())
         ox,oy = self.mOffset
         self.Move((mx-ox, my-oy))
         self.__posBeforeDrag__ = None
@@ -44,7 +48,7 @@ class DraggablePanel(wx.Panel):
     def restorePositionBeforeDrag(self):
         log.debug(function=self.restorePositionBeforeDrag, args=(self.__parentBeforeDrag__,self.__posBeforeDrag__))
         if self.__parentBeforeDrag__ != None and self.__posBeforeDrag__ != None:
-            self.Reparent(self.__parentBeforeDrag__)
+            if self.isPortable(): self.Reparent(self.__parentBeforeDrag__)
             self.Move(self.__posBeforeDrag__)
             self.GetParent().Refresh()
             self.__posBeforeDrag__ = None
@@ -55,14 +59,14 @@ class DraggablePanel(wx.Panel):
             log.debug(function=self.dragStart)
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
-            self.Reparent(self.getTopLevelFrame())
+            if self.isPortable(): self.Reparent(self.getTopLevelPanel())
             self.__dragged__ = True
 
-    def getTopLevelFrame(self):
-        tlf = self.GetParent()
-        while tlf.GetParent():
-            tlf = tlf.GetParent()
-        return tlf
+    def getTopLevelPanel(self):
+        tlp = self.GetParent()
+        while tlp.GetParent() and isinstance(tlp.GetParent(), wx.Panel):
+            tlp = tlp.GetParent()
+        return tlp
 
     def drop(self):
         if self.isBeingDragged():
@@ -71,7 +75,7 @@ class DraggablePanel(wx.Panel):
             self.__dragged__ = False
             releaseEvt = DraggableReleaseEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
-
+            
     def OnMouseDown(self, event):
         if not self.isDraggable(): return
         if not self.HasCapture(): self.CaptureMouse()

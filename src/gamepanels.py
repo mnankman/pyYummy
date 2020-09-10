@@ -69,19 +69,27 @@ class BoardPanel(TileWidgetView):
 
     def addTileSetWidget(self, set, pos=None):
         assert isinstance (set, model.Set)
+        log.debug(function=self.addTileSetWidget, args=(set, pos))
         tileSetWidget = TileSetWidget(self, set)
+        tileSetWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.onTileSetHover)
+        tileSetWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileSetRelease)
         tileSetWidget.setPos(pos if pos else set.getPos())
         for tId in set.getOrder():
             tileWidget = self.findTileWidgetById(tId)
             if tileWidget and not(tileWidget.isBeingDragged()):
                 tileWidget.Reparent(tileSetWidget)
         tileSetWidget.refreshLayout()
-        tileSetWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onTileSetRelease)
 
     def onTileSetRelease(self, event):
-        log.debug(function=self.onTileSetRelease, args=event)
-        tileSet = event.obj
-        tileSet.accept(self)
+        x,y = self.getEventPosition(event)
+        log.debug(function=self.onTileSetRelease, args=((x,y), obj))
+        tileSetWidget = event.obj
+        tileSetWidget.accept(self)
+        tileSetWidget.setPos(event.pos)
+
+    def onTileSetHover(self, event):
+        log.debug(function=self.onTileSetHover, args=event.pos)
+        self.triggerTileSetWidgets(event)
 
     def onTileHover(self, event):
         #log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
@@ -305,3 +313,14 @@ class GamePanel(TileWidgetView):
         elif util.insideRect(event.pos, self.platePanel.GetScreenRect()):
             self.platePanel.onTileHover(event)
 
+    def onTileSetHover(self, event):
+        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
+            self.boardPanel.onTileHover(event)
+    
+    def onTileSetRelease(self, event):
+        x,y = self.getEventPosition(event)
+        log.debug("*********************************", function=self.onTileSetRelease, args=((x,y), obj))
+        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
+            self.boardPanel.onTileRelease(event)
+        else: 
+            event.obj.reject()
