@@ -56,3 +56,6 @@ class Controller:
     def commit(self):
         self.model.commitMoves()
 
+    def revert(self):
+        self.model.revertGame()
+

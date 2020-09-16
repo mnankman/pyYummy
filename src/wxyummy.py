@@ -72,7 +72,9 @@ class ButtonBar(wx.Panel):
     def onUserPlay(self, e):
         if self.checkPlayerTurn():
             self.controller.commit()
-            self.controller.getCurrentGame().print()
+        else:
+            self.controller.revert()
+        self.controller.getCurrentGame().print()
 
     def onUserToggleSort(self, event):
         self.parent.onUserToggleSort(event)
