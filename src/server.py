@@ -80,7 +80,7 @@ class Server:
                 if buf: 
                     #data.outb += repr(buf)
                     self.model.receiveMessage(buf)
-                    self._print("received ", repr(buf), "from address: ", data.addr)
+                    self._print("received ", buf.decode("utf-8").strip(), "from address: ", data.addr)
                 else:
                     self._print("No data received")
                     self.close(key)
@@ -135,7 +135,8 @@ class Server:
 if __name__ == "__main__":
     helpTxt = "server.py -h <server hostname/ip-address> -p <server port>"
     serverHost = "127.0.0.1"
-    serverPort = "65432"
+#    serverPort = "65432"
+    serverPort = "65444"
     try:
         argv = sys.argv[1:]
         opts, args = getopt.getopt(argv,"?h:p:",["shost=","sport="])
