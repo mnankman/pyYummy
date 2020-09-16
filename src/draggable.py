@@ -18,6 +18,8 @@ class DraggablePanel(wx.Panel):
         self.Bind(wx.EVT_MOTION,  self.OnMouseMove)
         self.Bind(wx.EVT_LEFT_UP,  self.OnMouseUp)
         self.Bind(wx.EVT_MOUSE_CAPTURE_LOST, self.OnMouseCaptureLost)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.OnMouseEnter)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
 
@@ -105,5 +107,11 @@ class DraggablePanel(wx.Panel):
             self.__dragged__ = False
             self.restorePositionBeforeDrag()
 
+    def OnMouseEnter(self, event):
+        if self.isDraggable():
+            self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+
+    def OnMouseLeave(self, event):
+        self.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 
 
