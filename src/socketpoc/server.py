@@ -110,6 +110,7 @@ class Server:
 
     def start(self):
         self.listeningSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.listeningSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.listeningSock.bind((self.host, self.port))
         self.listeningSock.listen()
         self._print("server listening on", (self.host, self.port))
@@ -135,8 +136,7 @@ class Server:
 if __name__ == "__main__":
     helpTxt = "server.py -h <server hostname/ip-address> -p <server port>"
     serverHost = "127.0.0.1"
-#    serverPort = "65432"
-    serverPort = "65444"
+    serverPort = "65432"
     try:
         argv = sys.argv[1:]
         opts, args = getopt.getopt(argv,"?h:p:",["shost=","sport="])

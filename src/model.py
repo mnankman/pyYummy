@@ -791,12 +791,50 @@ class Game(ModelObject):
         log.trace(self.toString())
 
 
-class Model(Publisher):
-    EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded", "msg_game_reverted"]
+class AbstractModel():
+    def __init__(self):
+        pass
+    
+    def rememberState(self, data=None):
+        pass
+
+    def newGame(self, n):
+        pass
+
+    def start(self):
+        pass
+
+    def commitMoves(self):
+        pass
+
+    def revertGame(self):
+        pass
+
+    def loadGame(self, data):
+        pass
+
+    def addPlayer(self, name):
+        pass
+
+    def getCurrentGame(self):
+        pass
+ 
+    def isGameModified(self):
+        pass
+
+    def getPlayer(self, name):
+        pass
+
+    def getCurrentPlayer(self):
+        pass
+
+
+class Model(AbstractModel, Publisher):
+    EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded", "msg_game_reverted", "msg_game_committed"]
     def __init__(self):
         self.currentGame = None
         self.lastValidState = None
-        super().__init__(Model.EVENTS)
+        Publisher.__init__(self, Model.EVENTS)
 
     def rememberState(self, data=None):
         if not data: 
@@ -823,6 +861,15 @@ class Model(Publisher):
         else:
             self.getCurrentGame().commit()
             self.rememberState()
+
+    def commitGame(self, serializedGame):
+        log.trace(function=self.commitGame, args=serializedGame)
+        if self.currentGame:
+            del self.currentGame
+        self.currentGame = Game(0)
+        self.currentGame.deserialize(serializedGame)
+        self.rememberState(serializedGame)
+        self.dispatch("msg_game_committed", {"game": self.currentGame})
 
     def revertGame(self):
         if self.lastValidState:
@@ -863,6 +910,82 @@ class Model(Publisher):
         return self.currentGame.getCurrentPlayer()
 
 
+class ModelProxy(Model):
+    def __init__(self, model):
+        Model.__init__(self)
+        assert isinstance(model, Model)
+        self.model = model
+        self.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
+        self.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
+        self.model.subscribe(self, "msg_new_game", self.onMsgNewGame)
+        self.model.subscribe(self, "msg_game_reverted", self.onMsgGameReverted)
+        self.model.subscribe(self, "msg_game_committed", self.onMsgGameCommitted)
+        self.setCurrentGame(self.model.getCurrentGame())
 
+    def setCurrentGame(self, game):
+        if self.currentGame:
+            self.currentGame.unsubscribe("msg_object_modified", self)
+        assert game
+        assert isinstance(game, Game)
+        self.currentGame = Game(0)
+        self.currentGame.deserialize(game.serialize())
+    
+    def newGame(self, n):
+        pass
 
-   
+    def start(self):
+        pass
+
+    def commitMoves(self):
+        super().commitMoves()
+        self.model.commitGame(self.currentGame.serialize())
+
+    def revertGame(self):
+        pass
+
+    def loadGame(self, data):
+        pass
+
+    def addPlayer(self, name):
+        pass
+ 
+    def onMsgNewGame(self, payload):
+        game = payload["game"]
+        assert isinstance(game, Game)
+        self.setCurrentGame(game)
+        game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.dispatch("msg_new_game", {"game": self.getCurrentGame()})
+
+    def onMsgNewPlayer(self, payload):
+        player = payload["player"]
+        if player:
+            assert isinstance(player, Player)
+            self.dispatch("msg_new_player", {"game": self.getCurrentGame(), "player": player})
+
+    def onMsgGameLoaded(self, payload):
+        game = payload["game"]
+        assert isinstance(game, Game)
+        self.setCurrentGame(game)
+        game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.dispatch("msg_game_loaded", {"game": self.getCurrentGame()})
+
+    def onMsgGameReverted(self, payload):
+        game = payload["game"]
+        assert isinstance(game, Game)
+        self.setCurrentGame(game)
+        game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.dispatch("msg_game_reverted", {"game": self.getCurrentGame()})
+
+    def onMsgGameModified(self, payload):
+        game = payload["object"]
+        assert isinstance(game, Game)
+        self.setCurrentGame(game)
+        game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+
+    def onMsgGameCommitted(self, payload):
+        game = payload["game"]
+        assert isinstance(game, Game)
+        self.setCurrentGame(game)
+        game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.dispatch("msg_game_loaded", {"game": self.getCurrentGame()})
+

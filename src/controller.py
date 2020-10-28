@@ -3,8 +3,10 @@ import log
 import json
 
 class Controller:
-    def __init__(self):
-        self.model = Model()
+    def __init__(self, model):
+        assert model
+        assert isinstance(model, AbstractModel)
+        self.model = model
 
     def reset(self):
         self.model.init()

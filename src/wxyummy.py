@@ -10,7 +10,7 @@ from tilesetwidget import TileSetWidget
 from gamepanels import BoardPanel, GamePanel, PlatePanel
 import draggable
 import model
-from controller import Controller
+from controller import Model, ModelProxy, Controller
 import util
 import log
 
@@ -122,9 +122,10 @@ class MainWindow(wx.Frame):
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
-        self.controller = Controller()
-        self.controller.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
-        self.controller.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
+        self.model = Model()
+        self.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
+        self.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
+        self.controller = Controller(self.model)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -175,7 +176,7 @@ class MainWindow(wx.Frame):
     def addPlayerButton(self, player): 
         assert isinstance(player, model.Player)   
         btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
-        gw = GameWindow(self.controller, player.getName())
+        gw = GameWindow(Controller(ModelProxy(self.model)), player.getName())
         gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)

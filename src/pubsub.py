@@ -97,7 +97,8 @@ class Publisher:
             self.get_subscribers(event)[sub] = handler
 
     def unsubscribe(self, event, sub):
-        del self.get_subscribers(event)[sub]
+        if event in self.events and sub in self.events[event]:
+            del self.events[event][sub]
 
     def dispatch(self, event, payload):
         if payload:
