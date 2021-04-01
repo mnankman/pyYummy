@@ -249,8 +249,10 @@ class MainWindow(wx.Frame):
         wx.lib.inspection.InspectionTool().Show()
 
 
+import logging
 
 def start():
+    logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
     app = WxAsyncApp()
     w = MainWindow()
     loop = asyncio.get_event_loop()

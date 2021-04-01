@@ -42,7 +42,7 @@ class TileWidgetView(draggable.DraggablePanel):
                 result = tw
                 break
         if not result:
-            log.error(function=self.findTileWidgetById, args=tId, returns=result)
+            log.warning(function=self.findTileWidgetById, args=tId, returns=result)
         return result
  
     def resetTileWidgets(self):
