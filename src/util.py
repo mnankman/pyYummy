@@ -34,6 +34,7 @@ def toString(item):
 
 def collectionToString(collection, itemtostr=lambda item: toString(item)):
     brackets = "()" if isinstance(collection, tuple) else "[]"
+    separator = ','
     s = brackets[0]
     n=0
     for item in collection:
@@ -42,7 +43,7 @@ def collectionToString(collection, itemtostr=lambda item: toString(item)):
         else:
             s += itemtostr(item)
         n+=1
-        if n<len(collection): s += ","
+        if n<len(collection): s += separator
     s += brackets[1]
     return s
 

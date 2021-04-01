@@ -4,6 +4,18 @@ import util
 
 loggers = {}
 
+def argsToString(args):
+    s = ""
+    n=0
+    for item in args:
+        if isinstance(item, (tuple, list)):
+            s += util.collectionToString(item)
+        else:
+            s += util.toString(item)
+        n+=1
+        if n<len(args): s += " "
+    return s
+
 def log(logger_method, msg, *args, **kwargs):
     func = None
     fargs = None
@@ -27,11 +39,13 @@ def log(logger_method, msg, *args, **kwargs):
             varName, varValue = v
             args2 += (varName, "=", varValue)
         else: kwargs2[k] = v
+    msg += argsToString(args)
     if func:
-        args2 += (func, fargs if fargs else "()")
+        msg += func + (fargs if fargs else "()")
         if returns: 
-            args2 += ("-->", returns)
-    logger_method(msg + util.collectionToString(args2))
+            msg += " --> " + returns
+    #logger_method(util.collectionToString(args))
+    logger_method(msg)
 
 def getLogger():
     frm = inspect.stack()[2]
