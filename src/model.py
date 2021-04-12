@@ -3,6 +3,7 @@ import util
 from pubsub import Publisher
 from modelobject import ModelObject
 import log
+import json
 
 class GameConstants:
     BLACK = 0
@@ -696,9 +697,11 @@ class Game(ModelObject):
         self.__maxPlayers = maxPlayers
         self.__currentPlayer = None
         self.__currentPlayerNr = None
+        self.__gameNr = None
         self.persist("maxPlayers")
         self.persist("currentPlayer")
         self.persist("currentPlayerNr")
+        self.persist("gameNr")
         
     def reset(self):
         TileFactory.init() 
@@ -712,12 +715,19 @@ class Game(ModelObject):
         
     def setCurrentPlayerNr(self, nr):
         log.debug(function=self.setCurrentPlayerNr, args=nr)
-        self.__currentPlayerNr = int(nr)
+        self.__currentPlayerNr = int(nr) if nr else None
         self.setModified()
         
     def setMaxPlayers(self, maxPlayers):
         self.__maxPlayers = maxPlayers
         self.setModified()
+
+    def setGameNr(self, gameNr):
+        self.__gameNr = gameNr
+        self.setModified()
+
+    def getGameNr(self):
+        return self.__gameNr
         
     def getBoard(self):
         return self.board
@@ -746,6 +756,7 @@ class Game(ModelObject):
         self.__currentPlayerNr = 0
 
     def getPlayerByName(self, name):
+        log.debug(function=self.getPlayerByName, args=(name, len(self._players)))
         player = None
         for p in self._players:
             if p.getName() == name:
@@ -755,7 +766,7 @@ class Game(ModelObject):
 
     def getCurrentPlayer(self):
         cp = None
-        #log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
+        log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
         if self.__currentPlayerNr!=None and self.__currentPlayerNr in range(len(self._players)):
             cp = self._players[self.__currentPlayerNr]
         if not cp: log.error(function=self.getCurrentPlayer, returns=cp)
@@ -789,6 +800,63 @@ class Game(ModelObject):
 
     def print(self):
         log.trace(self.toString())
+
+
+class GameServer(Publisher):
+    EVENTS = ["msg_new_game", "msg_game_updated", "msg_new_player"]
+    def __init__(self):
+        Publisher.__init__(self, GameServer.EVENTS)
+        self.games = {}
+        self.nextGameNr = 1
+
+    def newGame(self, players):
+        g = Game(players)
+        gameNr = self.nextGameNr
+        g.setGameNr(gameNr)
+        self.games[gameNr] = g
+        self.nextGameNr += 1
+        self.dispatch("msg_new_game", {"game": self.games[gameNr]})
+        return gameNr
+
+    def getGame(self, gameNr):
+        assert gameNr in self.games
+        return self.games[gameNr]
+
+    def addPlayer(self, gameNr, name):
+        g = self.getGame(gameNr)
+        g.addPlayerByName(name)
+        self.updateGame(g)
+        del g
+
+    def updateGame(self, game):
+        gameNr = game.getGameNr()
+        log.debug(function=self.updateGame, args=gameNr)
+        self.games[gameNr] = game
+        self.dispatch("msg_game_updated", {"game": self.games[gameNr]})
+
+    def startGame(self, gameNr):
+        log.debug(function=self.startGame, args=gameNr)
+        self.getGame(gameNr).start()
+        self.dispatch("msg_game_updated", {"game": self.games[gameNr]})
+
+    def saveGame(self, gameNr, path):
+        self.saved = json.dumps(self.gs.getGame(gameNr))
+        f=open(path,"w")
+        f.write(self.saved)
+        f.close()
+        log.trace("game saved to:", path)
+
+    def loadGame(self, path):
+        f=open(path,"r")
+        self.saved = f.readline()
+        f.close()
+        if self.saved:
+            g = Game(0)
+            g.deserialize(json.loads(self.saved))
+            self.updateGame(g)
+            #g.print()
+            return g.getGameNr()
+
 
 
 class AbstractModel():
@@ -881,7 +949,7 @@ class Model(AbstractModel, Publisher):
             self.dispatch("msg_game_reverted", {"game": self.currentGame})
 
     def loadGame(self, data):
-        log.trace(function=self.loadGame, args=data)
+        log.trace(function=self.loadGame)
         if self.currentGame:
             del self.currentGame
         self.currentGame = Game(0)
@@ -908,6 +976,37 @@ class Model(AbstractModel, Publisher):
 
     def getCurrentPlayer(self):
         return self.currentGame.getCurrentPlayer()
+
+class SynchronizingModel(Model):
+    def __init__(self, gameserver, gameNr):
+        Model.__init__(self)
+        assert isinstance(gameserver, GameServer)
+        self.gs = gameserver
+        self.currentGame = self.gs.getGame(gameNr)
+        self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
+        self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
+    
+    def start(self):
+        pass
+
+    def newGame(self, n):
+        pass
+
+    def commitMoves(self):
+        super().commitMoves()
+        self.gs.updateGame(self.getCurrentGame())
+
+    def addPlayer(self, name):
+        super().addPlayer(name)
+        self.gs.updateGame(self.getCurrentGame())
+ 
+    def onMsgNewGame(self, payload):
+        log.debug(function=self.onMsgNewGame)
+        self.loadGame(payload["game"])
+
+    def onMsgGameUpdated(self, payload):
+        log.debug(function=self.onMsgGameUpdated)
+        self.loadGame(payload["game"])
 
 
 class ModelProxy(Model):

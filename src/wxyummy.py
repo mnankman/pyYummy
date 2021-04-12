@@ -10,7 +10,7 @@ from tilesetwidget import TileSetWidget
 from gamepanels import BoardPanel, GamePanel, PlatePanel
 import draggable
 import model
-from controller import Model, ModelProxy, Controller
+from controller import Controller
 import util
 import log
 
@@ -122,10 +122,10 @@ class MainWindow(wx.Frame):
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
-        self.model = Model()
-        self.model.subscribe(self, "msg_new_player", self.onMsgNewPlayer)
-        self.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
-        self.controller = Controller(self.model)
+        self.gs = model.GameServer()
+        self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
+        self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
+        self.currentGame = None
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -141,6 +141,9 @@ class MainWindow(wx.Frame):
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
 
     def addTestTileWidgets(self):
+        '''
+        REMOVE!!
+        '''
         tc = model.TileContainer(None)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         for c in model.GameConstants.TILECOLORS:
@@ -176,24 +179,24 @@ class MainWindow(wx.Frame):
     def addPlayerButton(self, player): 
         assert isinstance(player, model.Player)   
         btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
-        gw = GameWindow(Controller(ModelProxy(self.model)), player.getName())
+        gw = GameWindow(Controller(model.SynchronizingModel(self.gs, self.currentGame)), player.getName())
         gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
         self.sizer.Add(btnPlayer)
         self.Refresh()
 
-    def onMsgNewPlayer(self, payload):
-        log.debug(function=self.onMsgNewPlayer, args=payload)
-        self.addPlayerButton(payload["player"])
-
-    def onMsgGameLoaded(self, payload):
-        log.debug(function=self.onMsgNewPlayer, args=payload)
-        game = payload["game"]
-        assert isinstance(game, model.Game)
+    def refresh(self):
+        game = self.gs.getGame(self.currentGame)
         self.destroyGameWindows()
         for player in game.getPlayers():
             self.addPlayerButton(player)
+
+    def onMsgNewGame(self, payload):
+        pass
+
+    def onMsgGameUpdated(self, payload):
+        pass
 
     def onUserPlayerClick(self, e):
         gw = self.gameWindows[e.GetEventObject()]
@@ -216,22 +219,24 @@ class MainWindow(wx.Frame):
 
     def onUserNewGame(self, e):
         self.destroyGameWindows()
-        self.controller.newGame(2)
-        self.controller.addPlayer("player1")
-        self.controller.addPlayer("player2")
-        self.controller.start()
+        self.currentGame = self.gs.newGame(2)
+        self.gs.addPlayer(self.currentGame, "player1")
+        self.gs.addPlayer(self.currentGame, "player2")
+        self.gs.startGame(self.currentGame)
+        self.refresh()
 
     def onUserSaveGame(self, e):
-        # Create open file dialog
-        dlg = wx.FileDialog(self, "Save", "", "", 
-            "Yummy files (*.yummy)|*.yummy", 
-            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_CANCEL:
-            return
-        path = dlg.GetPath()
-        dlg.Destroy()
+        if self.currentGame:
+            # Create open file dialog
+            dlg = wx.FileDialog(self, "Save", "", "", 
+                "Yummy files (*.yummy)|*.yummy", 
+                wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+            if dlg.ShowModal() == wx.ID_CANCEL:
+                return
+            path = dlg.GetPath()
+            dlg.Destroy()
 
-        self.controller.saveGame(path)
+            self.gs.saveGame(self.currentGame, path)
 
     def onUserLoadGame(self, e):
         # Create open file dialog
@@ -243,7 +248,8 @@ class MainWindow(wx.Frame):
         path = dlg.GetPath()
         dlg.Destroy()
        
-        self.controller.loadGame(path)
+        self.currentGame = self.gs.loadGame(path)
+        self.refresh()
 
     def onUserShowInspectionTool(self, e):
         wx.lib.inspection.InspectionTool().Show()
