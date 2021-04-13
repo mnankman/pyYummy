@@ -9,6 +9,7 @@
 		"code-runner.runInTerminal": true,
 		"python.venvPath": "~/environments",
 		"python.pythonPath": "/home/mark/environments/yummy/bin/python",
+		"python.linting.pylintArgs": ["--extension-pkg-whitelist=wx"],
 		"terminal.integrated.fontSize": 10
 	}
 }

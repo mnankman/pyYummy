@@ -87,7 +87,6 @@ class Tile(ModelObject):
         return self.__id
 
     def move(self, targetContainer, pos=None):
-        oldContainer = self._container
         if self._container.moveTile(self, targetContainer, pos):
             self.setModified()
             return True
@@ -128,7 +127,7 @@ class Joker(Tile):
         context = []
         try:
             context = kwargs["context"]
-        except KeyError as e:
+        except KeyError:
             if isinstance(self._container, Set): 
                 context = self._container.getTilesAsDict()
         left,right = (None,None)
@@ -151,7 +150,7 @@ class Joker(Tile):
     def getColor(self, *args, **kwargs):
         try:
             settype = kwargs["settype"]
-        except KeyError as e:
+        except KeyError:
             settype = None
         left,right = self.getNeighbours(*args, **kwargs)
         if left and right:
@@ -174,7 +173,7 @@ class Joker(Tile):
     def getValue(self, *args, **kwargs):
         try:
             settype = kwargs["settype"]
-        except KeyError as e:
+        except KeyError:
             settype = None
         left,right = self.getNeighbours(*args, **kwargs)
         if left and right:
@@ -307,7 +306,6 @@ class TileContainer(ModelObject):
         Moves the tile to the specified target container. In principal, this method should not be 
         invoked directly. To move a tile, invoke Tile.move().
         """
-        tId = tile.id()
         if self.containsTile(tile):
             if targetContainer.addTile(tile, pos)>0:
                 #self.__tiles.pop(self.__tiles.index(tId))
@@ -490,7 +488,6 @@ class Set(TileContainer):
         N = len(tiles)              #total number of tiles in the set
         DV = len(distinctvalues)    #number of distinct values in the set
         DC = len(distinctcolors)    #number of distinct colors in the set
-        containsjoker = jokers>0
         log.debug("N=",N,"DV=",DV,"DC=",DC,"jokers=",jokers)
 
         #the initial assumption is that the set is invalid

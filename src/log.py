@@ -20,7 +20,6 @@ def log(logger_method, msg, *args, **kwargs):
     func = None
     fargs = None
     returns = None
-    var=None
     kwargs2 = {}
     args2 = args
     for k,v in kwargs.items():

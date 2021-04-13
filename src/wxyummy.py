@@ -1,8 +1,10 @@
 import wx
 from wxasync import WxAsyncApp
 import asyncio
-
 import wx.lib.inspection
+
+import util
+import log
 
 import styles
 from tilewidget import TileWidget
@@ -12,8 +14,6 @@ import draggable
 import model
 from controller import Controller
 from gameserver import GameServer
-import util
-import log
 
 RESOURCES="src/resource"
 
