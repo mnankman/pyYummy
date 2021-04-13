@@ -202,8 +202,10 @@ class GamePanel(TileWidgetView):
 #        super().__init__(parent=parent)
         self.SetBackgroundColour('#CCCCCC')
         assert isinstance(game, model.Game)
+        assert isinstance(player, model.Player)
         self.game = game
         self.player = player
+        self.playerName = player.getName()
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -232,7 +234,7 @@ class GamePanel(TileWidgetView):
             player = game.getPlayerByName(playerWidget.player.getName())
             playerWidget.reset(player)
         self.game = game
-        self.player = game.getPlayerByName(self.player.getName())
+        self.player = game.getPlayerByName(self.playerName)
         self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(self.game.board)
         self.platePanel.reset(self.player)
