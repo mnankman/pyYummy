@@ -130,8 +130,6 @@ class MainWindow(wx.Frame):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        #self.addTestTileWidgets()
-
         self.create_menu()
         self.SetSizer(self.sizer)
         #self.SetAutoLayout(1)
@@ -141,17 +139,6 @@ class MainWindow(wx.Frame):
         self.Show()
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
 
-    def addTestTileWidgets(self):
-        '''
-        REMOVE!!
-        '''
-        tc = model.TileContainer(None)
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        for c in model.GameConstants.TILECOLORS:
-            hbox.Add(TileWidget(self, model.Tile.create(200+c, c, 10, tc)))
-        self.sizer.Add(hbox)
-
-        
     def create_menu(self):
         menuBar = wx.MenuBar()
         debugMenu = wx.Menu()
@@ -260,7 +247,8 @@ import logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
-    log.setLoggerLevel("persistentobject", logging.ERROR)
+    #log.setLoggerLevel("persistentobject", logging.ERROR)
+    log.setLoggerLevel("tilewidgetview", logging.ERROR)
     app = WxAsyncApp()
     w = MainWindow()
     loop = asyncio.get_event_loop()

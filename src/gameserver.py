@@ -17,7 +17,7 @@ class GameServer(Publisher):
         g.setGameNr(gameNr)
         self.games[gameNr] = g
         self.nextGameNr += 1
-        self.dispatch("msg_new_game", {"game": self.games[gameNr]})
+        self.dispatch("msg_new_game", {"game": self.games[gameNr].serialize()})
         return gameNr
 
     def getGame(self, gameNr):
@@ -34,13 +34,13 @@ class GameServer(Publisher):
         gameNr = game.getGameNr()
         log.debug(function=self.updateGame, args=gameNr)
         self.games[gameNr] = game
-        self.dispatch("msg_game_updated", {"game": game.clone()})
+        self.dispatch("msg_game_updated", {"game": game.serialize()})
 
     def startGame(self, gameNr):
         assert gameNr in self.games
         log.debug(function=self.startGame, args=gameNr)
         self.games[gameNr].start()
-        self.dispatch("msg_game_updated", {"game": self.games[gameNr].clone()})
+        self.dispatch("msg_game_updated", {"game": self.games[gameNr].serialize()})
 
     def saveGame(self, gameNr, path):
         assert gameNr in self.games

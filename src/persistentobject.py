@@ -78,9 +78,13 @@ class PersistentObject:
         """
         Checks the validity of the provided serialized data
         """
+        log.debug(function=self.isValidData, args=(data, self.getType()))
+        assert data!=None
+        assert isinstance(data, dict)
+        assert "type" in data
+        assert data["type"] == self.getType()
         if data!=None and isinstance(data, dict) and "type" in data and data["type"] == self.getType():
             # valid data is a dict containing at least a field "type" with value self.classname
-            log.debug(function=self.isValidData, args=self.getType())
             return True
         log.error(function=self.isValidData, args=data, returns=False)
         # perhaps, we should raise an exception here, for now, False is returned
@@ -209,4 +213,6 @@ class PersistentObject:
                         log.error("no getter or creator method found for element", 
                                   className + "." + elementName, 
                                   "\n\n", type(self), ".__dict__", type(self).__dict__, "\n\n")
+        else: 
+            assert False
 

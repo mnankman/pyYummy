@@ -30,7 +30,8 @@ class PlayerWidget(wx.Panel):
         if self.player:
             self.player.unsubscribe("msg_object_modified", self)
         self.player = player
-        self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
+        if self.player != None:
+            self.player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
     
     def playerInfo(self):
         return self.player.getName() + "(" + str(self.player.getPlate().getSize()) + ")"

@@ -33,16 +33,14 @@ class Controller:
         return self.model.getPlayer(name)
 
     def pick(self):
-        player = self.getCurrentPlayer()
-        game = self.getCurrentGame()
-        if game and player:
-            game.getPile().pickTile(player)
-            game.board.cleanUp(False)
-            game.nextTurn()
+        log.debug(function=self.pick)
+        self.model.pick()
 
     def commit(self):
+        log.debug(function=self.commit)
         self.model.commitMoves()
 
     def revert(self):
+        log.debug(function=self.revert)
         self.model.revertGame()
 

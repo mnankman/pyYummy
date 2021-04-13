@@ -673,6 +673,7 @@ class Player(ModelObject):
         return self.plate
 
     def isPlayerTurn(self):
+        log.debug(function=self.isPlayerTurn, args=self.__name)
         return self.game.getCurrentPlayer() == self
 
     def pickTile(self):
@@ -713,7 +714,7 @@ class Game(ModelObject):
         
     def setCurrentPlayerNr(self, nr):
         log.debug(function=self.setCurrentPlayerNr, args=nr)
-        self.__currentPlayerNr = int(nr) if nr else None
+        self.__currentPlayerNr = int(nr) if nr!=None else None
         self.setModified()
         
     def setMaxPlayers(self, maxPlayers):
@@ -767,7 +768,9 @@ class Game(ModelObject):
         log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
         if self.__currentPlayerNr!=None and self.__currentPlayerNr in range(len(self._players)):
             cp = self._players[self.__currentPlayerNr]
-        if not cp: log.error(function=self.getCurrentPlayer, returns=cp)
+        if not cp: 
+            log.error(function=self.getCurrentPlayer, returns=cp)
+            assert False
         return cp
 
     def getPlayers(self):
@@ -819,6 +822,9 @@ class AbstractModel():
     def start(self):
         pass
 
+    def pick(self):
+        pass
+
     def commitMoves(self):
         pass
 
@@ -867,6 +873,15 @@ class Model(AbstractModel, Publisher):
     def start(self):
         self.currentGame.start()
         self.rememberState()
+
+    def pick(self):
+        log.debug(function=self.pick)
+        player = self.getCurrentPlayer()
+        game = self.getCurrentGame()
+        if game and player:
+            game.getPile().pickTile(player)
+            game.board.cleanUp(False)
+            game.nextTurn()
 
     def commitMoves(self):
         log.trace(function=self.commitMoves)
@@ -938,6 +953,10 @@ class SynchronizingModel(Model):
 
     def newGame(self, n):
         pass
+
+    def pick(self):
+        super().pick()
+        self.gs.updateGame(self.getCurrentGame())
 
     def commitMoves(self):
         super().commitMoves()
