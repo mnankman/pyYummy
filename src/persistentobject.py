@@ -80,7 +80,7 @@ class PersistentObject:
         """
         if data!=None and isinstance(data, dict) and "type" in data and data["type"] == self.getType():
             # valid data is a dict containing at least a field "type" with value self.classname
-            log.debug(function=self.isValidData, args=data)
+            log.debug(function=self.isValidData, args=self.getType())
             return True
         log.error(function=self.isValidData, args=data, returns=False)
         # perhaps, we should raise an exception here, for now, False is returned
@@ -112,7 +112,7 @@ class PersistentObject:
         """
         sets the persistent attributes to the values as serialized in data 
         """
-        log.debug(function=self.setDataAttributes, args=data)
+        log.debug(function=self.setDataAttributes, args=self.getType())
         className = self.getDataType(data)
         # iterate through the items in data
         for item in data:
@@ -128,7 +128,6 @@ class PersistentObject:
                     # see if the class has a setter method for this attribute
                     setterName = "set"+util.upperFirst(item)
                     if hasattr(type(self), setterName):
-                        log.debug("setterName =", setterName)
                         # apparently, the setter method exists, so use it:
                         setter = getattr(type(self), setterName)
                         log.debug(function=setter, args=attrValue)

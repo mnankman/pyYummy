@@ -11,6 +11,7 @@ from gamepanels import BoardPanel, GamePanel, PlatePanel
 import draggable
 import model
 from controller import Controller
+from gameserver import GameServer
 import util
 import log
 
@@ -259,6 +260,7 @@ import logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
+    log.setLoggerLevel("persistentobject", logging.ERROR)
     app = WxAsyncApp()
     w = MainWindow()
     loop = asyncio.get_event_loop()

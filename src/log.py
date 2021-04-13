@@ -58,6 +58,15 @@ def getLogger():
         #logging.debug('new logger:', modName)
     return logger
 
+def setLoggerLevel(modName, level):
+    if modName in loggers:
+        logger = loggers[modName]
+    else:
+        logger = logging.getLogger(modName)
+        loggers[modName] = logger
+    logger.setLevel(level)
+
+
 def debug(*args, **kwargs):
     log(getLogger().debug, "", *args, **kwargs)
 

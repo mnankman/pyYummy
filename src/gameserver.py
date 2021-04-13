@@ -22,7 +22,7 @@ class GameServer(Publisher):
 
     def getGame(self, gameNr):
         assert gameNr in self.games
-        return self.games[gameNr]
+        return self.games[gameNr].clone()
 
     def addPlayer(self, gameNr, name):
         g = self.getGame(gameNr)
@@ -34,26 +34,31 @@ class GameServer(Publisher):
         gameNr = game.getGameNr()
         log.debug(function=self.updateGame, args=gameNr)
         self.games[gameNr] = game
-        self.dispatch("msg_game_updated", {"game": self.games[gameNr]})
+        self.dispatch("msg_game_updated", {"game": game.clone()})
 
     def startGame(self, gameNr):
+        assert gameNr in self.games
         log.debug(function=self.startGame, args=gameNr)
-        self.getGame(gameNr).start()
-        self.dispatch("msg_game_updated", {"game": self.games[gameNr]})
+        self.games[gameNr].start()
+        self.dispatch("msg_game_updated", {"game": self.games[gameNr].clone()})
 
     def saveGame(self, gameNr, path):
-        self.saved = json.dumps(self.gs.getGame(gameNr))
+        assert gameNr in self.games
+        log.debug(function=self.saveGame, args=gameNr)
+        g = self.games[gameNr]
+        self.saved = json.dumps(g.serialize())
         f=open(path,"w")
         f.write(self.saved)
         f.close()
         log.trace("game saved to:", path)
 
     def loadGame(self, path):
+        log.debug(function=self.loadGame, args=path)
         f=open(path,"r")
         self.saved = f.readline()
         f.close()
         if self.saved:
-            g = model.Game(0)
+            g = model.Game()
             g.deserialize(json.loads(self.saved))
             self.updateGame(g)
             #g.print()
