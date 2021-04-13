@@ -572,7 +572,7 @@ class Pile(TileContainer):
             pick = random.sample(list(tiles), 1)[0]
             #log.debug("pick: ", pick)
             pickedTile = self.getTile(pick)
-            log.debug("picked: ", pickedTile.toString())
+            log.debug(function=self.pickTile, args=(player, pickedTile))
             pickedTile.move(player.plate)
         return pickedTile
 
