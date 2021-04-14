@@ -1,6 +1,6 @@
 import wx
 import model
-import log
+import lib.log
 from styler import PaintStyler
 
 RESOURCES="src/resource"

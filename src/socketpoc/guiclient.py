@@ -3,7 +3,7 @@ import wx.lib.scrolledpanel
 from console import AbstractConsole
 import client
 import server
-from pubsub import Subscriber
+from lib.pubsub import Subscriber
 
 ID_NEWCHAT=101
 ID_JOINCHAT=102

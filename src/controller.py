@@ -1,5 +1,5 @@
 from model import *
-import log
+import lib.log
 import json
 
 class Controller:

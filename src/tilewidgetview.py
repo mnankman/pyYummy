@@ -1,7 +1,7 @@
 import wx
 from tilewidget import TileWidget
 import draggable 
-import log
+import lib.log
 
 class TileWidgetView(draggable.DraggablePanel):
     def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):

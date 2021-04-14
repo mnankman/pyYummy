@@ -1,6 +1,6 @@
-import logging
+import lib.logging
 import inspect
-import util
+import lib.util
 
 loggers = {}
 

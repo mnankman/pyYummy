@@ -1,6 +1,6 @@
 import asyncio
 import functools
-import log
+import lib.log
 
 class MessageQueue:
     MAXQUEUESIZE = 20

@@ -1,5 +1,5 @@
-import util
-import log
+import lib.util
+import lib.log
    
 class PersistentObject:
     """

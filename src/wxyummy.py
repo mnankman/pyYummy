@@ -3,8 +3,8 @@ from wxasync import WxAsyncApp
 import asyncio
 import wx.lib.inspection
 
-import util
-import log
+import lib.util
+import lib.log
 
 import styles
 from tilewidget import TileWidget
@@ -243,11 +243,11 @@ class MainWindow(wx.Frame):
         wx.lib.inspection.InspectionTool().Show()
 
 
-import logging
+import lib.logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
-    #log.setLoggerLevel("persistentobject", logging.ERROR)
+    log.setLoggerLevel("persistentobject", logging.ERROR)
     log.setLoggerLevel("tilewidgetview", logging.ERROR)
     app = WxAsyncApp()
     w = MainWindow()

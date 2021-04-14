@@ -1,9 +1,9 @@
 import random
-import util
-from pubsub import Publisher
+import lib.util
+from lib.pubsub import Publisher
 from modelobject import ModelObject
 from gameserver import GameServer
-import log
+import lib.log
 import json
 
 class GameConstants:

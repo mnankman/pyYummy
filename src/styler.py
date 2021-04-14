@@ -1,6 +1,6 @@
 import wx
-import util
-import log
+import lib.util
+import lib.log
 
 class Colors:
     def __init__(self, *args, **kwargs):

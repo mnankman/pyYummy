@@ -1,8 +1,8 @@
 import unittest
 from model import *
-from pubsub import MessageQueue
+from lib.pubsub import MessageQueue
 
-import log
+import lib.log
 
 class ModelTestMethods(unittest.TestCase):
 

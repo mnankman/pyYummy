@@ -6,7 +6,7 @@ from playerwidget import PlayerWidget
 import draggable
 import model
 import util
-import log
+import lib.log
 
 class BoardPanel(TileWidgetView):    
     def __init__(self, parent):
