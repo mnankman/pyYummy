@@ -1,9 +1,8 @@
 import wx
 import draggable
 from tilewidgetview import TileWidgetView
-import model
-import lib.util
-import lib.log
+from base import model
+from lib import util, log
 from styler import PaintStyler
 from tilewidget import TileWidget
 

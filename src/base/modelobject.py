@@ -1,6 +1,6 @@
+from lib import log
 from lib.pubsub import Publisher
-from persistentobject import PersistentObject
-import lib.log
+from .persistentobject import PersistentObject
 
 class ModelObject(PersistentObject, Publisher):
     EVENTS = ["msg_object_modified", "msg_new_child"]

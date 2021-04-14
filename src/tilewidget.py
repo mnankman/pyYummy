@@ -1,7 +1,7 @@
 import wx
 from draggable import DraggablePanel
-import model
-import lib.log
+from base import model
+from lib import log
 from styler import PaintStyler
 
 RESOURCES="src/resource"

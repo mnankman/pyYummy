@@ -1,10 +1,9 @@
-import random
-import lib.util
-from lib.pubsub import Publisher
-from modelobject import ModelObject
-from gameserver import GameServer
-import lib.log
 import json
+import random
+from lib import log, util
+from lib.pubsub import Publisher
+from .modelobject import ModelObject
+from .gameserver import GameServer
 
 class GameConstants:
     BLACK = 0

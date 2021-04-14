@@ -3,17 +3,16 @@ from wxasync import WxAsyncApp
 import asyncio
 import wx.lib.inspection
 
-import lib.util
-import lib.log
+from lib import log, util
 
 import styles
 from tilewidget import TileWidget
 from tilesetwidget import TileSetWidget
 from gamepanels import BoardPanel, GamePanel, PlatePanel
 import draggable
-import model
-from controller import Controller
-from gameserver import GameServer
+from base.model import Player, SynchronizingModel
+from base.controller import Controller
+from base.gameserver import GameServer
 
 RESOURCES="src/resource"
 
@@ -91,7 +90,7 @@ class GameWindow(wx.Frame):
 
         self.game = self.controller.getCurrentGame()
         self.player = self.game.getPlayerByName(playerName)
-        assert isinstance(self.player, model.Player)
+        assert isinstance(self.player, Player)
 
         self.gamePanel = GamePanel(self, self.game, self.player)
         #self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
@@ -123,7 +122,7 @@ class MainWindow(wx.Frame):
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
-        self.gs = model.GameServer()
+        self.gs = GameServer()
         self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
         self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
         self.currentGame = None
@@ -165,9 +164,9 @@ class MainWindow(wx.Frame):
         self.playerBtns = []
         
     def addPlayerButton(self, player): 
-        assert isinstance(player, model.Player)   
+        assert isinstance(player, Player)   
         btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
-        gw = GameWindow(Controller(model.SynchronizingModel(self.gs, self.currentGame)), player.getName())
+        gw = GameWindow(Controller(SynchronizingModel(self.gs, self.currentGame)), player.getName())
         gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
@@ -243,7 +242,7 @@ class MainWindow(wx.Frame):
         wx.lib.inspection.InspectionTool().Show()
 
 
-import lib.logging
+import logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)

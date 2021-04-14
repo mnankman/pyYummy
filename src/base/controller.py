@@ -1,6 +1,6 @@
-from model import *
-import lib.log
 import json
+from lib import log
+from .model import AbstractModel
 
 class Controller:
     def __init__(self, model):

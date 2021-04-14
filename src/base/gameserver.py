@@ -1,8 +1,7 @@
-import lib.util
+from lib import log
 from lib.pubsub import Publisher
-import lib.log
 import json
-import model
+from . import model
 
 class GameServer(Publisher):
     EVENTS = ["msg_new_game", "msg_game_updated", "msg_new_player"]

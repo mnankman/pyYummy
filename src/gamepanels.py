@@ -4,9 +4,8 @@ from tilesetwidget import TileSetWidget
 from tilewidgetview import TileWidgetView
 from playerwidget import PlayerWidget
 import draggable
-import model
-import util
-import lib.log
+from base import model
+from lib import util, log
 
 class BoardPanel(TileWidgetView):    
     def __init__(self, parent):

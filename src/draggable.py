@@ -1,6 +1,6 @@
 import wx
 import wx.lib.newevent
-import lib.log
+from lib import log
 
 DraggableHoverEvent, EVT_DRAGGABLE_HOVER = wx.lib.newevent.NewEvent()
 DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
