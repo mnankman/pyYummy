@@ -39,6 +39,7 @@ def log(logger_method, msg, *args, **kwargs):
             args2 += (varName, "=", varValue)
         else: kwargs2[k] = v
     msg += argsToString(args)
+    if len(msg)>0: msg += " | "
     if func:
         msg += func + (fargs if fargs else "()")
         if returns: 

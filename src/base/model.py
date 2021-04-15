@@ -51,10 +51,12 @@ class Game(ModelObject):
         self.__currentPlayer = None
         self.__currentPlayerNr = None
         self.__gameNr = None
+        self.__moves = 0
         self.persist("maxPlayers")
         self.persist("currentPlayer")
         self.persist("currentPlayerNr")
         self.persist("gameNr")
+        self.persist("moves")
         
     def reset(self):
         TileFactory.init() 
@@ -79,8 +81,19 @@ class Game(ModelObject):
         self.__gameNr = gameNr
         self.setModified()
 
+    def setMoves(self, moves):
+        self.__moves = moves
+        self.setModified()
+
     def getGameNr(self):
         return self.__gameNr
+
+    def getMoves(self):
+        return self.__moves
+
+    def incMoves(self):
+        self.__moves += 1
+        self.setModified()
         
     def getBoard(self):
         return self.board
@@ -89,6 +102,7 @@ class Game(ModelObject):
         return self.pile
 
     def addPlayer(self):
+        log.debug(function=self.addPlayer, args=(len(self._players), self.__maxPlayers))
         if len(self._players) < self.__maxPlayers:
             player = Player(self)
             self._players.append(player)
@@ -107,6 +121,7 @@ class Game(ModelObject):
             for i in range(14):
                 p.pickTile()
         self.__currentPlayerNr = 0
+        self.__moves = 0
 
     def getPlayerByName(self, name):
         log.debug(function=self.getPlayerByName, args=(name, len(self._players)))
@@ -134,6 +149,7 @@ class Game(ModelObject):
         p = self.__currentPlayerNr+1
         if p>=len(self._players): p = 0
         self.setCurrentPlayerNr(p)
+        self.incMoves()
     
     def validate(self):
         return self.board.validateSets()==0
@@ -144,6 +160,10 @@ class Game(ModelObject):
         # recursively clear the modified flag of all ModelObject instances under Game
         self.clearModified(True)
         self.nextTurn()
+
+    def deserialize(self, data):
+        self._players = []
+        super().deserialize(data)
 
     def clone(self):
         log.debug(function=self.clone)
@@ -264,9 +284,9 @@ class Model(AbstractModel, Publisher):
 
     def loadGame(self, data):
         log.trace(function=self.loadGame)
-        if self.currentGame:
-            del self.currentGame
-        self.currentGame = Game(0)
+        log.debug(function=self.loadGame, args=data)
+        if self.currentGame == None:
+            self.currentGame = Game()
         self.currentGame.deserialize(data)
         self.rememberState(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})
@@ -324,6 +344,8 @@ class SynchronizingModel(Model):
 
     def onMsgGameUpdated(self, payload):
         log.debug(function=self.onMsgGameUpdated)
-        self.loadGame(payload["game"])
+        if self.getCurrentGame().getMoves() < payload["moves"]:
+            log.debug("a player has made a move, game of this model needs to be updated")
+            self.loadGame(payload["game"])
 
 

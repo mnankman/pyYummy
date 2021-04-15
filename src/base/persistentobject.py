@@ -93,15 +93,16 @@ class PersistentObject:
         """
         returns the type of the provided serialized data
         """
-        if "type" in data: return data["type"]
-        return None
+        dataType = data["type"] if "type" in data else None
+        assert dataType!=None
+        return dataType
 
     def getDataElements(self, data):
         """
         returns the list of elements in the provided serialized data
         """
-        if "elements" in data: return data["elements"]
-        return None
+        dataElements = data["elements"] if "elements" in data else None
+        return dataElements
 
     def getDataAttribute(self, data, attribute):
         """
@@ -189,6 +190,7 @@ class PersistentObject:
                     # e is a dict containing the persisted values of the persistent attributes of a single child object
                     className = self.getDataType(data) 
                     elementName = self.getDataType(e)
+                    log.debug("deserialize " + className + "." + elementName)
                     elementGetterName = "get"+self.getDataType(e)
                     elementAdderName = "add"+self.getDataType(e)
                     # try accessing the getter method for the collection of child objects
@@ -205,9 +207,12 @@ class PersistentObject:
                         addElement = getattr(type(self), elementAdderName)
                         element = addElement(self)
                         # verify that the found element is an instance of PersistentObject
-                        assert isinstance(element, PersistentObject)
-                        # now, recursively deserialize the child 
-                        element.deserialize(e)
+                        #assert isinstance(element, PersistentObject)
+                        if isinstance(element, PersistentObject):
+                            # now, recursively deserialize the child 
+                            element.deserialize(e)
+                        else:
+                            log.error(className + "." + elementAdderName + " returned an object of type: " + str(element) + " where PersistentObject is expected")
                     else:
                         log.error("no getter or creator method found for element", 
                                   className + "." + elementName, 

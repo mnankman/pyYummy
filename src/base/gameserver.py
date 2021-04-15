@@ -31,15 +31,15 @@ class GameServer(Publisher):
 
     def updateGame(self, game):
         gameNr = game.getGameNr()
-        log.debug(function=self.updateGame, args=gameNr)
+        log.debug("--------------", function=self.updateGame, args=gameNr)
         self.games[gameNr] = game
-        self.dispatch("msg_game_updated", {"game": game.serialize()})
+        self.dispatch("msg_game_updated", {"game": game.serialize(), "moves": game.getMoves()})
 
     def startGame(self, gameNr):
         assert gameNr in self.games
         log.debug(function=self.startGame, args=gameNr)
         self.games[gameNr].start()
-        self.dispatch("msg_game_updated", {"game": self.games[gameNr].serialize()})
+        self.dispatch("msg_game_updated", {"game": self.games[gameNr].serialize(), "moves": self.games[gameNr].getMoves()})
 
     def saveGame(self, gameNr, path):
         assert gameNr in self.games
