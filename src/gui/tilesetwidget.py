@@ -70,14 +70,14 @@ class TileSetWidget(TileWidgetView):
                 self.paintStyler.select("TileSetWidget:mouseOver", dc)
             else:
                 self.paintStyler.select("TileSetWidget:normal", dc)
-        tw,th = TileWidget.defaultSize()
+        tw,th = TileWidget.DEFAULTSIZE
         w,h = self.GetClientSize()
         dc.DrawRectangle(0,h-5,w,h)
 
     def drawTilePosIndicator(self, dc):
         if self.newTilePos and len(self.NewTilePosList)>=self.newTilePos:
             self.paintStyler.select("TileSetWidget:posIndicator", dc)
-            tw,th = TileWidget.defaultSize()
+            tw,th = TileWidget.DEFAULTSIZE
             w,h = self.GetClientSize()
             p = self.newTilePos-1
             ix,iy = (self.NewTilePosList[p], h-5)
@@ -85,7 +85,7 @@ class TileSetWidget(TileWidgetView):
 
 
     def updateSize(self):
-        tw,th = TileWidget.defaultSize()
+        tw,th = TileWidget.DEFAULTSIZE
         numTiles = self.set.getSize()
         self.SetSize(numTiles*tw+10, th+10)
     
@@ -129,7 +129,7 @@ class TileSetWidget(TileWidgetView):
         return tileWidget
     
     def refreshLayout(self):
-        tw,th = TileWidget.defaultSize()
+        tw,th = TileWidget.DEFAULTSIZE
         xOffset = 5
         self.NewTilePosList = [xOffset]
         for tile in self.set.getOrderedTiles():
