@@ -1,5 +1,5 @@
 import unittest
-from model import *
+from base.model import *
 from lib.pubsub import MessageQueue
 
 import lib.log
