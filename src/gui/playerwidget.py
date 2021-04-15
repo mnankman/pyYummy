@@ -1,5 +1,4 @@
 import wx
-from base import model
 from lib import log
 from gui.styler import PaintStyler
 
@@ -7,11 +6,10 @@ RESOURCES="src/resource"
 
 class PlayerWidget(wx.Panel):
     yummyIcon = None
-    def defaultSize():
-        return (100,12)
+    DEFAULTSIZE = (100,12)
 
     def __init__(self, parent, player):
-        super().__init__(parent, size=PlayerWidget.defaultSize(), style=wx.CLIP_CHILDREN)
+        super().__init__(parent, size=PlayerWidget.DEFAULTSIZE, style=wx.CLIP_CHILDREN)
         self.player = None
 
         if not PlayerWidget.yummyIcon:

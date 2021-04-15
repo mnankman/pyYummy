@@ -1,14 +1,13 @@
+import asyncio
+
 import wx
 from wxasync import WxAsyncApp
-import asyncio
-import wx.lib.inspection
+from wx.lib.inspection import InspectionTool
 
-from lib import log, util
+from lib import log
 
-from gui import styles, draggable
-from gui.tilewidget import TileWidget
-from gui.tilesetwidget import TileSetWidget
-from gui.gamepanels import BoardPanel, GamePanel, PlatePanel
+from gui import styles
+from gui.gamepanels import GamePanel
 
 from base.model import Player, SynchronizingModel
 from base.controller import Controller
@@ -68,6 +67,7 @@ class ButtonBar(wx.Panel):
     def onUserPlus(self, e):
         if self.checkPlayerTurn():
             self.controller.pick()
+        e.Skip()
 
     def onUserPlay(self, e):
         if self.checkPlayerTurn():
@@ -75,9 +75,11 @@ class ButtonBar(wx.Panel):
         else:
             self.controller.revert()
         self.controller.getCurrentGame().print()
+        e.Skip()
 
     def onUserToggleSort(self, event):
         self.parent.onUserToggleSort(event)
+        event.Skip()
 
 class GameWindow(wx.Frame):
     def __init__(self, controller, playerName):
@@ -110,6 +112,7 @@ class GameWindow(wx.Frame):
 
     def onUserToggleSort(self, e):
         self.gamePanel.toggleSort()
+        e.Skip()
 
 class MainWindow(wx.Frame):
     def __init__(self):
@@ -126,6 +129,7 @@ class MainWindow(wx.Frame):
         self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
         self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
         self.currentGame = None
+        self.playerBtns = []
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -203,6 +207,7 @@ class MainWindow(wx.Frame):
     def onUserExit(self, e):
         self.destroyGameWindows()
         self.Close(True) 
+        e.Skip()
 
     def onUserNewGame(self, e):
         self.destroyGameWindows()
@@ -211,6 +216,7 @@ class MainWindow(wx.Frame):
         self.gs.addPlayer(self.currentGame, "player2")
         self.gs.startGame(self.currentGame)
         self.refresh()
+        e.Skip()
 
     def onUserSaveGame(self, e):
         if self.currentGame:
@@ -224,6 +230,7 @@ class MainWindow(wx.Frame):
             dlg.Destroy()
 
             self.gs.saveGame(self.currentGame, path)
+        e.Skip()
 
     def onUserLoadGame(self, e):
         # Create open file dialog
@@ -234,12 +241,14 @@ class MainWindow(wx.Frame):
             return
         path = dlg.GetPath()
         dlg.Destroy()
+        e.SKip()
        
         self.currentGame = self.gs.loadGame(path)
         self.refresh()
 
     def onUserShowInspectionTool(self, e):
-        wx.lib.inspection.InspectionTool().Show()
+        InspectionTool().Show()
+        e.Skip()
 
 
 import logging
@@ -254,6 +263,7 @@ def start():
     try:
         loop.run_until_complete(app.MainLoop())
     finally:
+        w.Close()
         loop.stop()
         loop.close()
 
