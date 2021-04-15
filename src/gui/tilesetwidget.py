@@ -1,10 +1,10 @@
 import wx
-import draggable
-from tilewidgetview import TileWidgetView
 from base import model
 from lib import util, log
-from styler import PaintStyler
-from tilewidget import TileWidget
+from gui import draggable
+from gui.tilewidgetview import TileWidgetView
+from gui.styler import PaintStyler
+from gui.tilewidget import TileWidget
 
 class TileSetWidget(TileWidgetView):  
     normalPenColor = 'Black'

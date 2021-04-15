@@ -1,7 +1,7 @@
 import wx
 from base import model
 from lib import log
-from styler import PaintStyler
+from gui.styler import PaintStyler
 
 RESOURCES="src/resource"
 

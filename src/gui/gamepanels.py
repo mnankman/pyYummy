@@ -1,9 +1,9 @@
 import wx
-from tilewidget import TileWidget
-from tilesetwidget import TileSetWidget
-from tilewidgetview import TileWidgetView
-from playerwidget import PlayerWidget
-import draggable
+from gui.tilewidget import TileWidget
+from gui.tilesetwidget import TileSetWidget
+from gui.tilewidgetview import TileWidgetView
+from gui.playerwidget import PlayerWidget
+from gui import draggable
 from base import model
 from lib import util, log
 
@@ -81,7 +81,7 @@ class BoardPanel(TileWidgetView):
 
     def onTileSetRelease(self, event):
         x,y = self.getEventPosition(event)
-        log.debug(function=self.onTileSetRelease, args=((x,y), obj))
+        log.debug(function=self.onTileSetRelease, args=((x,y), event.obj))
         tileSetWidget = event.obj
         tileSetWidget.accept(self)
         tileSetWidget.setPos(event.pos)

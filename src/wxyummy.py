@@ -5,11 +5,11 @@ import wx.lib.inspection
 
 from lib import log, util
 
-import styles
-from tilewidget import TileWidget
-from tilesetwidget import TileSetWidget
-from gamepanels import BoardPanel, GamePanel, PlatePanel
-import draggable
+from gui import styles, draggable
+from gui.tilewidget import TileWidget
+from gui.tilesetwidget import TileSetWidget
+from gui.gamepanels import BoardPanel, GamePanel, PlatePanel
+
 from base.model import Player, SynchronizingModel
 from base.controller import Controller
 from base.gameserver import GameServer

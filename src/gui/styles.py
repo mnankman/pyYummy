@@ -1,5 +1,5 @@
 import wx
-import styler
+from . import styler
 
 TILECOLORS = ["#333333", "#000066", "#CC0033", "#FF9933"]
 
