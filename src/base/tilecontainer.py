@@ -143,7 +143,7 @@ class TileContainer(ModelObject):
 
     def toString(self):
         groupedByColor = sorted(self.getTilesAsDict().values(), key= lambda tile: tile.getColor())
-        s = str(type(self)) + "(" + str(len(groupedByColor)) + " tiles):"
+        s = self.getId() + "(" + str(len(groupedByColor)) + " tiles):"
         currentColor = None
         for tile in groupedByColor:
             if tile.getColor() != currentColor:
@@ -432,7 +432,7 @@ class Board(TileContainer):
         return 1
 
     def toString(self):
-        s = "Board(" + str(len(self.__sets)) + " sets):"
+        s = self.getId()+ "(" + str(len(self.__sets)) + " sets):"
         for set in self.__sets:
             s = s + "\n" + set.toString()
         return s

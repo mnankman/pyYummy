@@ -4,7 +4,7 @@ from gui.tilesetwidget import TileSetWidget
 from gui.tilewidgetview import TileWidgetView
 from gui.playerwidget import PlayerWidget
 from gui import draggable
-from base import model
+from base import model, controller
 from lib import util, log
 
 class BoardPanel(TileWidgetView):    
@@ -154,6 +154,7 @@ class PlatePanel(TileWidgetView):
                 return plate.getTilesGroupedByColor()
 
     def reset(self, player=None):
+        log.debug(function=self.reset, args=player)
         self.setPlayer(player)
         self.resetTileWidgets()
         self.refreshTiles()
@@ -196,15 +197,15 @@ class PlatePanel(TileWidgetView):
 
 
 class GamePanel(TileWidgetView):    
-    def __init__(self, parent, game, player):
+    def __init__(self, parent, cntrlr, player):
         super().__init__(parent=parent, size=(800,600))
 #        super().__init__(parent=parent)
         self.SetBackgroundColour('#CCCCCC')
-        assert isinstance(game, model.Game)
+        assert isinstance(cntrlr, controller.Controller)
         assert isinstance(player, model.Player)
-        self.game = game
+        self.controller = cntrlr
         self.player = player
-        self.playerName = player.getName()
+        self.playerName = self.player.getName()
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -222,40 +223,43 @@ class GamePanel(TileWidgetView):
 
         self.SetSizer(vbox)
 
-        self.reset(game)
+        self.controller.model.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
+        self.controller.model.subscribe(self, "msg_game_reverted", self.onMsgGameReverted)
 
-    def reset(self, game):
+        self.reset()
+
+    def getGame(self):
+        assert controller!=None
+        return self.controller.getCurrentGame()
+
+    def reset(self):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             tileSetWidget.Destroy()
         for tileWidget in self.getObjectsByType(TileWidget):
             tileWidget.Destroy()
         for playerWidget in self.getObjectsByType(PlayerWidget):
-            player = game.getPlayerByName(playerWidget.player.getName())
+            player = self.getGame().getPlayerByName(playerWidget.player.getName())
             playerWidget.reset(player)
-        self.game = game
-        self.player = game.getPlayerByName(self.playerName)
-        self.game.subscribe(self, "msg_object_modified", self.onMsgGameModified)
-        self.boardPanel.reset(self.game.board)
+        self.getGame().subscribe(self, "msg_object_modified", self.onMsgGameModified)
+        self.boardPanel.reset(self.getGame().board)
         self.platePanel.reset(self.player)
 
     def createPlayerWidgets(self):
-        for p in self.game.getPlayers():
+        for p in self.getGame().getPlayers():
             self.playerBox.Add(PlayerWidget(self, p))
-
-    def getGame(self):
-        return self.game
 
     def refresh(self):
         self.platePanel.refresh()
-        if True or self.player.isPlayerTurn():
+        if True or self.player().isPlayerTurn():
             self.boardPanel.refresh()            
         else:
-            self.boardPanel.reset(self.game.board)
+            self.boardPanel.reset(self.getGame().board)
         self.Refresh()
 
     def toggleSort(self):
         self.platePanel.toggleSort()
 
+    '''
     def onMsgNewGame(self, payload):
         log.debug(function=self.onMsgNewGame, args=payload)
         game = payload["game"]
@@ -269,19 +273,20 @@ class GamePanel(TileWidgetView):
             assert isinstance(player, model.Player)
             player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
         pass
+    '''
 
     def onMsgGameLoaded(self, payload):
         log.debug(function=self.onMsgGameLoaded, args=payload)
         game = payload["game"]
         if game:
-            self.reset(game)
+            self.reset()
             self.refresh()
 
     def onMsgGameReverted(self, payload):
         log.debug(function=self.onMsgGameLoaded, args=payload)
         game = payload["game"]
         if game:
-            self.reset(game)
+            self.reset()
             self.refresh()
 
     def onMsgGameModified(self, payload):
@@ -296,7 +301,7 @@ class GamePanel(TileWidgetView):
             player = payload["object"]
             if player:
                 assert isinstance(player, model.Player)
-                if self.game.getCurrentPlayer() == player:
+                if self.getGame().getCurrentPlayer() == player:
                     self.refresh()
 
     def onTileRelease(self, event):

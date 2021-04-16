@@ -94,11 +94,7 @@ class GameWindow(wx.Frame):
         self.player = self.game.getPlayerByName(playerName)
         assert isinstance(self.player, Player)
 
-        self.gamePanel = GamePanel(self, self.game, self.player)
-        #self.controller.model.subscribe(self.gamePanel, "msg_new_game", self.gamePanel.onMsgNewGame)
-        self.controller.model.subscribe(self.gamePanel, "msg_game_loaded", self.gamePanel.onMsgGameLoaded)
-        self.controller.model.subscribe(self.gamePanel, "msg_game_reverted", self.gamePanel.onMsgGameReverted)
-        #self.controller.model.subscribe(self.gamePanel, "msg_new_player", self.gamePanel.onMsgNewPlayer)
+        self.gamePanel = GamePanel(self, self.controller, self.player)
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
         self.sizer.Add(ButtonBar(self, self.controller, self.player))
@@ -266,7 +262,7 @@ def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
     log.setLoggerLevel("base.persistentobject", logging.ERROR)
     log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
-    log.setLoggerLevel("gui.gamepanels", logging.ERROR)
+    #log.setLoggerLevel("gui.gamepanels", logging.ERROR)
     app = WxAsyncApp()
     loop = asyncio.get_event_loop()
     w = MainWindow()

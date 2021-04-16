@@ -34,7 +34,7 @@ class Player(ModelObject):
         return self.game.pile.pickTile(self)
 
     def toString(self):
-        s =  "player: " + self.__name
+        s =  self.getId() + ": " + self.__name
         return s
 
     def print(self):
@@ -161,6 +161,14 @@ class Game(ModelObject):
         self.clearModified(True)
         self.nextTurn()
 
+    def pick(self):
+        player = self.getCurrentPlayer()
+        log.debug(function=self.pick, args=(self.getId(), player.getName()))
+        if player:
+            self.getPile().pickTile(player)
+            self.board.cleanUp(False)
+            self.nextTurn()
+
     def deserialize(self, data):
         self._players = []
         super().deserialize(data)
@@ -226,8 +234,8 @@ class AbstractModel():
 
 class Model(AbstractModel, Publisher):
     EVENTS = ["msg_new_game", "msg_new_player", "msg_game_loaded", "msg_game_reverted", "msg_game_committed"]
-    def __init__(self):
-        self.currentGame = None
+    def __init__(self, game=None):
+        self.currentGame = game
         self.lastValidState = None
         Publisher.__init__(self, Model.EVENTS)
 
@@ -250,12 +258,9 @@ class Model(AbstractModel, Publisher):
 
     def pick(self):
         log.debug(function=self.pick)
-        player = self.getCurrentPlayer()
         game = self.getCurrentGame()
-        if game and player:
-            game.getPile().pickTile(player)
-            game.board.cleanUp(False)
-            game.nextTurn()
+        if game:
+            game.pick()
 
     def commitMoves(self):
         log.trace(function=self.commitMoves)
@@ -315,10 +320,9 @@ class Model(AbstractModel, Publisher):
 
 class SynchronizingModel(Model):
     def __init__(self, gameserver, gameNr):
-        Model.__init__(self)
         assert isinstance(gameserver, GameServer)
         self.gs = gameserver
-        self.currentGame = self.gs.getGame(gameNr)
+        Model.__init__(self, self.gs.getGame(gameNr))
         self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
         self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
     
@@ -345,9 +349,11 @@ class SynchronizingModel(Model):
         self.loadGame(payload["game"])
 
     def onMsgGameUpdated(self, payload):
-        log.debug(function=self.onMsgGameUpdated, args=(self.getCurrentGame().getId(), self.getCurrentGame().getMoves(), payload["moves"]))
-        if self.getCurrentGame().getMoves() < payload["moves"]:
-            log.debug("a player has made a move, game of this model needs to be updated")
+        cg = self.getCurrentGame()
+        cpName = cg.getCurrentPlayer().getName()
+        gameId = cg.getId()
+        log.debug(function=self.onMsgGameUpdated, args=(gameId, payload["id"], cpName, cg.getMoves(), payload["moves"]))
+        if gameId != payload["id"]:
             self.loadGame(payload["game"])
 
 
