@@ -27,7 +27,7 @@ class Player(ModelObject):
         return self.plate
 
     def isPlayerTurn(self):
-        log.debug(function=self.isPlayerTurn, args=self.__name)
+        #log.debug(function=self.isPlayerTurn, args=self.__name)
         return self.game.getCurrentPlayer() == self
 
     def pickTile(self):
@@ -69,7 +69,7 @@ class Game(ModelObject):
         self.setModified()
         
     def setCurrentPlayerNr(self, nr):
-        log.debug(function=self.setCurrentPlayerNr, args=nr)
+        log.debug(function=self.setCurrentPlayerNr, args=(self.getId(), nr))
         self.__currentPlayerNr = int(nr) if nr!=None else None
         self.setModified()
         
@@ -102,7 +102,7 @@ class Game(ModelObject):
         return self.pile
 
     def addPlayer(self):
-        log.debug(function=self.addPlayer, args=(len(self._players), self.__maxPlayers))
+        log.debug(function=self.addPlayer, args=(self.getId(), len(self._players), self.__maxPlayers))
         if len(self._players) < self.__maxPlayers:
             player = Player(self)
             self._players.append(player)
@@ -124,7 +124,7 @@ class Game(ModelObject):
         self.__moves = 0
 
     def getPlayerByName(self, name):
-        log.debug(function=self.getPlayerByName, args=(name, len(self._players)))
+        log.debug(function=self.getPlayerByName, args=(self.getId(), name, len(self._players)))
         player = None
         for p in self._players:
             if p.getName() == name:
@@ -134,7 +134,7 @@ class Game(ModelObject):
 
     def getCurrentPlayer(self):
         cp = None
-        log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
+        #log.debug(function=self.getCurrentPlayer, args=(self.__currentPlayerNr, len(self._players)))
         if self.__currentPlayerNr!=None and self.__currentPlayerNr in range(len(self._players)):
             cp = self._players[self.__currentPlayerNr]
         if not cp: 
@@ -166,13 +166,15 @@ class Game(ModelObject):
         super().deserialize(data)
 
     def clone(self):
-        log.debug(function=self.clone)
+        log.debug(function=self.clone, args=self.getId())
         clonedGame = Game()
-        clonedGame.deserialize(self.serialize())
+        data = self.serialize()
+        clonedGame.deserialize(data)
+        log.debug("\n\noriginal = " + str(data) + "\n\nclone = " + str(clonedGame.serialize()))
         return clonedGame
 
     def toString(self):
-        s = "\ngame(" + str(len(self._players)) + " players):\n"
+        s = "\n" + self.getId() + "(" + str(len(self._players)) + " players):\n"
         for p in self._players:
             s = s + p.toString() + p.plate.toString()
         s = s + "\npile: " + self.pile.toString()
@@ -343,7 +345,7 @@ class SynchronizingModel(Model):
         self.loadGame(payload["game"])
 
     def onMsgGameUpdated(self, payload):
-        log.debug(function=self.onMsgGameUpdated)
+        log.debug(function=self.onMsgGameUpdated, args=(self.getCurrentGame().getId(), self.getCurrentGame().getMoves(), payload["moves"]))
         if self.getCurrentGame().getMoves() < payload["moves"]:
             log.debug("a player has made a move, game of this model needs to be updated")
             self.loadGame(payload["game"])

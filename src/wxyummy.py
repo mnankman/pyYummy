@@ -264,8 +264,9 @@ import logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
-    #log.setLoggerLevel("base.persistentobject", logging.ERROR)
+    log.setLoggerLevel("base.persistentobject", logging.ERROR)
     log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
+    log.setLoggerLevel("gui.gamepanels", logging.ERROR)
     app = WxAsyncApp()
     loop = asyncio.get_event_loop()
     w = MainWindow()

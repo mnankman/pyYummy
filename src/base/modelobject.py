@@ -10,6 +10,11 @@ class ModelObject(PersistentObject, Publisher):
     extends PersistentObject to enable instance of ModelObject to serialize/deserialize their internal state
     extends Publisher to allow Subscriber instances to be notified about the modification state.  
     """
+    __lastId__ = 0
+    def nextId():
+        id = ModelObject.__lastId__
+        ModelObject.__lastId__ += 1
+        return id
 
     def __init__(self, parent=None):
         PersistentObject.__init__(self)
@@ -17,6 +22,7 @@ class ModelObject(PersistentObject, Publisher):
         self.__modified__ = False
         self.__children__ = []
         self.__parent__ = None
+        self.__objectId__ = ModelObject.nextId()
         if parent:
             assert isinstance(parent, ModelObject)
             self.__parent__ = parent
@@ -46,6 +52,9 @@ class ModelObject(PersistentObject, Publisher):
         if child and isinstance(child, ModelObject):
             valid = child in self.__children__ and child.getParent() == self
         return valid
+
+    def getId(self):
+        return self.getType() + str(self.__objectId__)
 
     def getChildren(self):
         if not self.__children__: self.__children = []
