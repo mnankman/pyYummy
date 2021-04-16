@@ -138,9 +138,13 @@ class MainWindow(wx.Frame):
         #self.SetAutoLayout(1)
         #self.sizer.Fit(self)
         self.Centre()
-        self.SetClientSize(400,300)
+        self.SetClientSize(200,80)
+        self.SetPosition((0, 0))
         self.Show()
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
+
+        wx.PostEvent(self, wx.MenuEvent(wx.wxEVT_MENU, ID_NEWGAME))
+
 
     def create_menu(self):
         menuBar = wx.MenuBar()
@@ -170,7 +174,9 @@ class MainWindow(wx.Frame):
     def addPlayerButton(self, player): 
         assert isinstance(player, Player)   
         btnPlayer = wx.Button(self, -1, player.getName(), size=(100, 20), )
+        wPos = (len(self.gameWindows)*820, 200)
         gw = GameWindow(Controller(SynchronizingModel(self.gs, self.currentGame)), player.getName())
+        gw.SetPosition(wPos)
         gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
@@ -209,13 +215,16 @@ class MainWindow(wx.Frame):
         self.Close(True) 
         e.Skip()
 
-    def onUserNewGame(self, e):
+    def newGame(self):
         self.destroyGameWindows()
         self.currentGame = self.gs.newGame(2)
         self.gs.addPlayer(self.currentGame, "player1")
         self.gs.addPlayer(self.currentGame, "player2")
         self.gs.startGame(self.currentGame)
         self.refresh()
+
+    def onUserNewGame(self, e):
+        self.newGame()
         e.Skip()
 
     def onUserSaveGame(self, e):
@@ -258,12 +267,11 @@ def start():
     #log.setLoggerLevel("base.persistentobject", logging.ERROR)
     log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
     app = WxAsyncApp()
-    w = MainWindow()
     loop = asyncio.get_event_loop()
+    w = MainWindow()
     try:
         loop.run_until_complete(app.MainLoop())
     finally:
-        w.Close()
         loop.stop()
         loop.close()
 
