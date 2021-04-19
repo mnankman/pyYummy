@@ -144,14 +144,17 @@ class PlatePanel(TileWidgetView):
         return None
 
     def getPlateValues(self):
-        if self.player and isinstance(self.player, model.Player):
-            plate = self.player.plate
-            if self.sortMethod==0:
-                return plate.getTilesAsDict().values()
-            elif self.sortMethod==1:
-                return plate.getTilesSortedByValue()
-            else:
-                return plate.getTilesGroupedByColor()
+        assert self.player!=None
+        assert isinstance(self.player, model.Player)
+        plate = self.player.plate
+        result = None
+        if self.sortMethod==0:
+            result = plate.getTilesAsDict().values()
+        elif self.sortMethod==1:
+            result = plate.getTilesSortedByValue()
+        else:
+            result = plate.getTilesGroupedByColor()
+        return result
 
     def reset(self, player=None):
         log.debug(function=self.reset, args=player)
@@ -160,16 +163,17 @@ class PlatePanel(TileWidgetView):
         self.refreshTiles()
 
     def refreshTiles(self):
-        if self.player and isinstance(self.player, model.Player):
-            tx, ty = (0, 0)
-            for t in self.getPlateValues():
-                tileWidget = self.findTileWidgetById(t.id())
-                if not tileWidget: 
-                    tileWidget = TileWidget(self, t)
-                    self.addTileWidget(tileWidget)
-                tileWidget.Move((tx,ty))
-                tw,th = tileWidget.GetSize()
-                tx = tx+tw+1
+        assert self.player!=None
+        assert isinstance(self.player, model.Player)
+        tx, ty = (0, 0)
+        for t in self.getPlateValues():
+            tileWidget = self.findTileWidgetById(t.id())
+            if not tileWidget: 
+                tileWidget = TileWidget(self, t)
+                self.addTileWidget(tileWidget)
+            tileWidget.Move((tx,ty))
+            tw,th = tileWidget.GetSize()
+            tx = tx+tw+1
 
     def refresh(self):
         self.refreshTiles()
@@ -204,8 +208,7 @@ class GamePanel(TileWidgetView):
         assert isinstance(cntrlr, controller.Controller)
         assert isinstance(player, model.Player)
         self.controller = cntrlr
-        self.player = player
-        self.playerName = self.player.getName()
+        self.playerName = player.getName()
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -214,7 +217,7 @@ class GamePanel(TileWidgetView):
         self.createPlayerWidgets()
 
         self.boardPanel = BoardPanel(self)
-        self.platePanel = PlatePanel(self, self.player)
+        self.platePanel = PlatePanel(self, self.getPlayer())
         self.platePanel.addTileWidgetDropTarget(self)
         self.boardPanel.addTileWidgetDropTarget(self)
         vbox.Add(self.boardPanel, 10, wx.EXPAND)
@@ -232,6 +235,9 @@ class GamePanel(TileWidgetView):
         assert controller!=None
         return self.controller.getCurrentGame()
 
+    def getPlayer(self):
+        return self.getGame().getPlayerByName(self.playerName)
+
     def reset(self):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
             tileSetWidget.Destroy()
@@ -242,7 +248,7 @@ class GamePanel(TileWidgetView):
             playerWidget.reset(player)
         self.getGame().subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(self.getGame().board)
-        self.platePanel.reset(self.player)
+        self.platePanel.reset(self.getPlayer())
 
     def createPlayerWidgets(self):
         for p in self.getGame().getPlayers():
@@ -291,7 +297,7 @@ class GamePanel(TileWidgetView):
 
     def onMsgGameModified(self, payload):
         if not "modified" in payload: #only process modifications of game object, not of its children
-            log.debug("*******", self.player.getName(), function=self.onMsgGameModified, args=payload)
+            log.debug("*******", self.playerName, function=self.onMsgGameModified, args=payload)
             self.refresh()
 
     def onMsgPlayerModified(self, payload):
