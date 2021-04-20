@@ -69,7 +69,7 @@ class Game(ModelObject):
         self.setModified()
         
     def setCurrentPlayerNr(self, nr):
-        log.debug(function=self.setCurrentPlayerNr, args=(self.getId(), nr))
+        log.debug(function=self.setCurrentPlayerNr, args=(self.getFullId(), nr))
         self.__currentPlayerNr = int(nr) if nr!=None else None
         self.setModified()
         
@@ -102,7 +102,7 @@ class Game(ModelObject):
         return self.pile
 
     def addPlayer(self):
-        log.debug(function=self.addPlayer, args=(self.getId(), len(self._players), self.__maxPlayers))
+        log.debug(function=self.addPlayer, args=(self.getFullId(), len(self._players), self.__maxPlayers))
         if len(self._players) < self.__maxPlayers:
             player = Player(self)
             self._players.append(player)
@@ -124,7 +124,7 @@ class Game(ModelObject):
         self.__moves = 0
 
     def getPlayerByName(self, name):
-        log.debug(function=self.getPlayerByName, args=(self.getId(), name, len(self._players)))
+        log.debug(function=self.getPlayerByName, args=(self.getFullId(), name, len(self._players)))
         player = None
         for p in self._players:
             if p.getName() == name:
@@ -163,7 +163,7 @@ class Game(ModelObject):
 
     def pick(self):
         player = self.getCurrentPlayer()
-        log.debug(function=self.pick, args=(self.getId(), player.getName()))
+        log.debug(function=self.pick, args=(self.getFullId(), player.getName()))
         if player:
             self.getPile().pickTile(player)
             self.board.cleanUp(False)
@@ -174,11 +174,11 @@ class Game(ModelObject):
         super().deserialize(data)
 
     def clone(self):
-        log.debug(function=self.clone, args=self.getId())
+        log.debug(function=self.clone, args=self.getFullId())
         clonedGame = Game()
         data = self.serialize()
         clonedGame.deserialize(data)
-        log.debug("\n\noriginal = " + str(data) + "\n\nclone = " + str(clonedGame.serialize()))
+        #log.debug("\n\noriginal = " + str(data) + "\n\nclone = " + str(clonedGame.serialize()))
         return clonedGame
 
     def toString(self):
@@ -243,7 +243,7 @@ class Model(AbstractModel, Publisher):
         if not data: 
             data = self.currentGame.serialize()
         self.lastValidState = data
-        log.trace("lastValidState =", self.lastValidState, function=self.rememberState)
+        #log.debug("lastValidState =", self.lastValidState, function=self.rememberState)
 
     def newGame(self, n):
         log.trace(function=self.newGame, args=n)
@@ -275,7 +275,7 @@ class Model(AbstractModel, Publisher):
         log.trace(function=self.commitGame, args=serializedGame)
         if self.currentGame:
             del self.currentGame
-        self.currentGame = Game(0)
+        self.currentGame = Game()
         self.currentGame.deserialize(serializedGame)
         self.rememberState(serializedGame)
         self.dispatch("msg_game_committed", {"game": self.currentGame})
@@ -285,15 +285,16 @@ class Model(AbstractModel, Publisher):
             log.trace(function=self.revertGame)
             if self.currentGame:
                 del self.currentGame
-            self.currentGame = Game(0)
+            self.currentGame = Game()
             self.currentGame.deserialize(self.lastValidState)
             self.dispatch("msg_game_reverted", {"game": self.currentGame})
 
     def loadGame(self, data):
         log.trace(function=self.loadGame)
         log.debug(function=self.loadGame, args=data)
-        if self.currentGame == None:
-            self.currentGame = Game()
+        if self.currentGame:
+            del self.currentGame
+        self.currentGame = Game()
         self.currentGame.deserialize(data)
         self.rememberState(data)
         self.dispatch("msg_game_loaded", {"game": self.currentGame})

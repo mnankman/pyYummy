@@ -246,7 +246,7 @@ class MainWindow(wx.Frame):
             return
         path = dlg.GetPath()
         dlg.Destroy()
-        e.SKip()
+        e.Skip()
        
         self.currentGame = self.gs.loadGame(path)
         self.refresh()
@@ -260,8 +260,11 @@ import logging
 
 def start():
     logging.basicConfig(format='[%(name)s] %(levelname)s:%(message)s', level=logging.DEBUG)
-    #log.setLoggerLevel("base.persistentobject", logging.ERROR)
+    log.setLoggerLevel("base.persistentobject", logging.ERROR)
+    log.setLoggerLevel("base.modelobject", logging.ERROR)
+    log.setLoggerLevel("base.tilecontainer", logging.ERROR)
     log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
+    log.setLoggerLevel("gui.tilesetwidget", logging.ERROR)
     log.setLoggerLevel("gui.gamepanels", logging.ERROR)
     app = WxAsyncApp()
     loop = asyncio.get_event_loop()

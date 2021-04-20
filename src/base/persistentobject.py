@@ -178,6 +178,7 @@ class PersistentObject:
         """
         log.debug(function=self.deserialize, args=data)
         if self.isValidData(data):
+            #self._reset()
             #self.initPersistentAttributes()
 
             # set the persistent attributes of this instance:

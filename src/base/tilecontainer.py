@@ -19,7 +19,7 @@ class TileContainer(ModelObject):
         self.lastTilePosition = 0
 
     def setTiles(self, tiles):
-        log.debug(function=self.setTiles, args=(self.getId(), tiles))
+        log.debug(function=self.setTiles, args=(self.getFullId(), tiles))
         if tiles:
             for tId in tiles:
                 if not tId in self.__tiles:
@@ -31,7 +31,7 @@ class TileContainer(ModelObject):
         return self.__tiles
 
     def getTilesAsDict(self):
-        log.debug(function=self.getTilesAsDict, args=self.getId())
+        log.debug(function=self.getTilesAsDict, args=self.getFullId())
         tiles = {}
         for tId in self.__tiles:
             tiles[tId] = Tile.getById(tId)
