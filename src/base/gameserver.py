@@ -23,6 +23,12 @@ class GameServer(Publisher):
         assert gameNr in self.games
         return self.games[gameNr].clone()
 
+    def getGameData(self):
+        result = []
+        for gameNr,game in self.games.items():
+            result.append((str(gameNr), str(game.getPlayerCount()), str(game.getMoves()), game.getCurrentPlayer().getName()))
+        return result
+
     def addPlayer(self, gameNr, name):
         g = self.getGame(gameNr)
         g.addPlayerByName(name)

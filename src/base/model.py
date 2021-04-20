@@ -91,6 +91,9 @@ class Game(ModelObject):
     def getMoves(self):
         return self.__moves
 
+    def getPlayerCount(self):
+        return len(self._players)
+
     def incMoves(self):
         self.__moves += 1
         self.setModified()

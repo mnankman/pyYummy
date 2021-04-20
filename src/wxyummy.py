@@ -129,20 +129,31 @@ class MainWindow(wx.Frame):
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.create_menu()
+        self.createMenu()
+        self.btnSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer.Add(self.btnSizer)
         self.SetSizer(self.sizer)
-        #self.SetAutoLayout(1)
-        #self.sizer.Fit(self)
+        self.createGameList()
+        self.SetAutoLayout(1)
+        self.sizer.Fit(self)
         self.Centre()
-        self.SetClientSize(200,80)
+        self.SetClientSize(400,100)
         self.SetPosition((0, 0))
         self.Show()
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
 
         wx.PostEvent(self, wx.MenuEvent(wx.wxEVT_MENU, ID_NEWGAME))
 
+    def createGameList(self):
+        self.list = wx.ListCtrl(self, -1, style = wx.LC_REPORT) 
+        self.list.InsertColumn(0, 'game', width = 100) 
+        self.list.InsertColumn(1, 'players', wx.LIST_FORMAT_RIGHT, 100) 
+        self.list.InsertColumn(2, 'moves', wx.LIST_FORMAT_RIGHT, 100) 
+        self.list.InsertColumn(3, 'turn', wx.LIST_FORMAT_RIGHT, 100) 
+        self.sizer.Add(self.list)
+        self.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.onUserSelectGameListItem, self.list)
 
-    def create_menu(self):
+    def createMenu(self):
         menuBar = wx.MenuBar()
         debugMenu = wx.Menu()
         debugMenu.Append(ID_SHOWINSPECTIONTOOL, "&Inspection tool", "Show the WX Inspection Tool")
@@ -176,7 +187,7 @@ class MainWindow(wx.Frame):
         gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
         self.gameWindows[btnPlayer] = gw
         btnPlayer.Bind(wx.EVT_BUTTON, self.onUserPlayerClick)
-        self.sizer.Add(btnPlayer)
+        self.btnSizer.Add(btnPlayer)
         self.Refresh()
 
     def refresh(self):
@@ -185,11 +196,23 @@ class MainWindow(wx.Frame):
         for player in game.getPlayers():
             self.addPlayerButton(player)
 
+    def refreshList(self):
+        self.list.DeleteAllItems()
+        data = self.gs.getGameData()
+        for row in data:
+            index = self.list.InsertStringItem(5, row[0])
+            self.list.SetStringItem(index, 1, row[1]) 
+            self.list.SetStringItem(index, 2, row[2]) 
+            self.list.SetStringItem(index, 3, row[3]) 
+
     def onMsgNewGame(self, payload):
-        pass
+        self.refreshList()
 
     def onMsgGameUpdated(self, payload):
-        pass
+        self.refreshList()
+
+    def onUserSelectGameListItem(self, e):
+        log.debug(function=self.onUserSelectGameListItem, args=e.GetIndex())
 
     def onUserPlayerClick(self, e):
         gw = self.gameWindows[e.GetEventObject()]
