@@ -4,7 +4,7 @@ import json
 from . import model
 
 class GameServer(Publisher):
-    EVENTS = ["msg_new_game", "msg_game_updated", "msg_new_player"]
+    EVENTS = ["msg_new_game", "msg_game_updated", "msg_game_loaded", "msg_new_player"]
     def __init__(self):
         Publisher.__init__(self, GameServer.EVENTS)
         self.games = {}
@@ -12,12 +12,16 @@ class GameServer(Publisher):
 
     def newGame(self, players):
         g = model.Game(players)
-        gameNr = self.nextGameNr
-        g.setGameNr(gameNr)
-        self.games[gameNr] = g
-        self.nextGameNr += 1
+        self.addGame(g)
+        gameNr = g.getGameNr()
         self.dispatch("msg_new_game", {"id": self.games[gameNr].getId(), "gamenr": gameNr, "game": self.games[gameNr].serialize()})
         return gameNr
+
+    def addGame(self, game):
+        gameNr = self.nextGameNr
+        game.setGameNr(gameNr)
+        self.games[gameNr] = game
+        self.nextGameNr += 1
 
     def getGame(self, gameNr):
         log.debug(function=self.getGame, args=gameNr)
@@ -65,7 +69,9 @@ class GameServer(Publisher):
         f.close()
         if self.saved:
             g = model.Game()
-            g.deserialize(json.loads(self.saved))
-            self.updateGame(g)
+            data = json.loads(self.saved)
+            g.deserialize(data)
+            self.addGame(g)
+            self.dispatch("msg_game_loaded", {"id": g.getId(), "gamenr": g.getGameNr(), "game": data})
             #g.print()
             return g.getGameNr()
