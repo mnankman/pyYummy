@@ -122,16 +122,16 @@ class GamePopupMenu(wx.Menu):
         self.Append(pmi)
         self.Bind(wx.EVT_MENU, self.OnPlay, pmi)
 
-        cmi = wx.MenuItem(self, wx.NewId(), 'Close')
-        self.Append(cmi)
-        self.Bind(wx.EVT_MENU, self.OnClose, cmi)
+        smi = wx.MenuItem(self, wx.NewId(), 'Save')
+        self.Append(smi)
+        self.Bind(wx.EVT_MENU, self.OnSave, smi)
 
 
     def OnPlay(self, e):
         self.parent.play(self.gameNr)
 
-    def OnClose(self, e):
-        self.parent.Close()
+    def OnSave(self, e):
+        self.parent.save(self.gameNr)
 
 
 class MainWindow(wx.Frame):
@@ -171,7 +171,7 @@ class MainWindow(wx.Frame):
         wx.PostEvent(self, wx.MenuEvent(wx.wxEVT_MENU, ID_NEWGAME))
 
     def createGameList(self):
-        self.list = wx.ListCtrl(self, -1, style = wx.LC_REPORT) 
+        self.list = wx.ListCtrl(self, -1, style = wx.LC_REPORT|wx.HSCROLL) 
         self.list.InsertColumn(0, 'game', width = 100) 
         self.list.InsertColumn(1, 'players', wx.LIST_FORMAT_RIGHT, 100) 
         self.list.InsertColumn(2, 'moves', wx.LIST_FORMAT_RIGHT, 100) 
@@ -203,6 +203,7 @@ class MainWindow(wx.Frame):
         for w in self.gameWindows.values():
             try:
                 w.Destroy()
+                del w
             finally:
                 pass
         self.gameWindows = {}
@@ -225,6 +226,18 @@ class MainWindow(wx.Frame):
                 gw.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseGameWindow)
                 self.gameWindows[nm] = gw
                 gw.Show()
+
+    def save(self, gameNr):
+        # Create open file dialog
+        dlg = wx.FileDialog(self, "Save", "", "", 
+            "Yummy files (*.yummy)|*.yummy", 
+            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+        path = dlg.GetPath()
+        dlg.Destroy()
+        self.gs.saveGame(gameNr, path)
+
         
     def refresh(self):
         pass
@@ -307,16 +320,7 @@ class MainWindow(wx.Frame):
 
     def onUserSaveGame(self, e):
         if self.currentGame:
-            # Create open file dialog
-            dlg = wx.FileDialog(self, "Save", "", "", 
-                "Yummy files (*.yummy)|*.yummy", 
-                wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-            if dlg.ShowModal() == wx.ID_CANCEL:
-                return
-            path = dlg.GetPath()
-            dlg.Destroy()
-
-            self.gs.saveGame(self.currentGame, path)
+            self.save(self.currentGame)
         e.Skip()
 
     def onUserLoadGame(self, e):

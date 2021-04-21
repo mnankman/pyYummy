@@ -231,6 +231,10 @@ class GamePanel(TileWidgetView):
 
         self.reset()
 
+    def __del__(self):
+        self.controller.model.unsubscribe(self, self.onMsgGameLoaded, "msg_game_loaded")
+        self.controller.model.unsubscribe(self, self.onMsgGameReverted, "msg_game_reverted")
+
     def getGame(self):
         assert controller!=None
         return self.controller.getCurrentGame()
