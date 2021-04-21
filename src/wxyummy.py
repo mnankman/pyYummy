@@ -174,8 +174,11 @@ class MainWindow(wx.Frame):
 
     def destroyGameWindows(self):
         for btn, w in self.gameWindows.items():
-            btn.Destroy()
-            w.Destroy()
+            try:
+                btn.Destroy()
+                w.Destroy()
+            finally:
+                pass
         self.playerBtns = []
         
     def addPlayerButton(self, player): 
@@ -191,19 +194,20 @@ class MainWindow(wx.Frame):
         self.Refresh()
 
     def refresh(self):
-        game = self.gs.getGame(self.currentGame)
-        self.destroyGameWindows()
-        for player in game.getPlayers():
-            self.addPlayerButton(player)
+        if self.currentGame!=None:
+            game = self.gs.getGame(self.currentGame)
+            self.destroyGameWindows()
+            for player in game.getPlayers():
+                self.addPlayerButton(player)
 
     def refreshList(self):
         self.list.DeleteAllItems()
         data = self.gs.getGameData()
         for row in data:
-            index = self.list.InsertStringItem(5, row[0])
-            self.list.SetStringItem(index, 1, row[1]) 
-            self.list.SetStringItem(index, 2, row[2]) 
-            self.list.SetStringItem(index, 3, row[3]) 
+            index = self.list.InsertStringItem(5, str(row[0]))
+            self.list.SetStringItem(index, 1, str(row[1])) 
+            self.list.SetStringItem(index, 2, str(row[2]))
+            self.list.SetStringItem(index, 3, str(row[3]))
 
     def onMsgNewGame(self, payload):
         self.refreshList()
@@ -212,7 +216,14 @@ class MainWindow(wx.Frame):
         self.refreshList()
 
     def onUserSelectGameListItem(self, e):
-        log.debug(function=self.onUserSelectGameListItem, args=e.GetIndex())
+        i = e.GetIndex()
+        data = self.gs.getGameData()
+        log.debug(function=self.onUserSelectGameListItem, args=data[i])
+        if data!=None and len(data)>0 and i>=0 :
+            selectedGame = data[i][0]
+            if selectedGame != self.currentGame:
+                self.currentGame = selectedGame
+                self.refresh()
 
     def onUserPlayerClick(self, e):
         gw = self.gameWindows[e.GetEventObject()]
@@ -220,7 +231,10 @@ class MainWindow(wx.Frame):
 
     def onUserCloseMainWindow(self, e):
         for w in self.gameWindows.values():
-            w.Destroy()
+            try:
+                w.Destroy()
+            finally:
+                exit()
         e.Skip()
 
     def onUserCloseGameWindow(self, e):
@@ -235,12 +249,12 @@ class MainWindow(wx.Frame):
         e.Skip()
 
     def newGame(self):
-        self.destroyGameWindows()
-        self.currentGame = self.gs.newGame(2)
-        self.gs.addPlayer(self.currentGame, "player1")
-        self.gs.addPlayer(self.currentGame, "player2")
-        self.gs.startGame(self.currentGame)
-        self.refresh()
+        #self.destroyGameWindows()
+        game = self.gs.newGame(2)
+        self.gs.addPlayer(game, "player1")
+        self.gs.addPlayer(game, "player2")
+        self.gs.startGame(game)
+        #self.refresh()
 
     def onUserNewGame(self, e):
         self.newGame()

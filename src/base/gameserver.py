@@ -16,17 +16,18 @@ class GameServer(Publisher):
         g.setGameNr(gameNr)
         self.games[gameNr] = g
         self.nextGameNr += 1
-        self.dispatch("msg_new_game", {"id": self.games[gameNr].getId(), "game": self.games[gameNr].serialize()})
+        self.dispatch("msg_new_game", {"id": self.games[gameNr].getId(), "gamenr": gameNr, "game": self.games[gameNr].serialize()})
         return gameNr
 
     def getGame(self, gameNr):
+        log.debug(function=self.getGame, args=gameNr)
         assert gameNr in self.games
         return self.games[gameNr].clone()
 
     def getGameData(self):
         result = []
         for gameNr,game in self.games.items():
-            result.append((str(gameNr), str(game.getPlayerCount()), str(game.getMoves()), game.getCurrentPlayer().getName()))
+            result.append((gameNr, game.getPlayerCount(), game.getMoves(), game.getCurrentPlayer().getName()))
         return result
 
     def addPlayer(self, gameNr, name):
@@ -39,13 +40,13 @@ class GameServer(Publisher):
         gameNr = game.getGameNr()
         log.debug("--------------", function=self.updateGame, args=gameNr)
         self.games[gameNr] = game
-        self.dispatch("msg_game_updated", {"id": game.getId(), "game": game.serialize(), "moves": game.getMoves()})
+        self.dispatch("msg_game_updated", {"id": game.getId(), "gamenr": gameNr, "game": game.serialize(), "moves": game.getMoves()})
 
     def startGame(self, gameNr):
         assert gameNr in self.games
         log.debug(function=self.startGame, args=gameNr)
         self.games[gameNr].start()
-        self.dispatch("msg_game_updated", {"id": self.games[gameNr].getId(), "game": self.games[gameNr].serialize(), "moves": self.games[gameNr].getMoves()})
+        self.dispatch("msg_game_updated", {"id": self.games[gameNr].getId(), "gamenr": gameNr, "game": self.games[gameNr].serialize(), "moves": self.games[gameNr].getMoves()})
 
     def saveGame(self, gameNr, path):
         assert gameNr in self.games

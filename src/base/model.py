@@ -350,14 +350,17 @@ class SynchronizingModel(Model):
  
     def onMsgNewGame(self, payload):
         log.debug(function=self.onMsgNewGame)
-        self.loadGame(payload["game"])
+        gameNr = payload["gamenr"]
+        if self.getCurrentGame() == None:
+            game = payload["game"]
+            self.loadGame(payload["game"])
 
     def onMsgGameUpdated(self, payload):
         cg = self.getCurrentGame()
         cpName = cg.getCurrentPlayer().getName()
         gameId = cg.getId()
         log.debug(function=self.onMsgGameUpdated, args=(gameId, payload["id"], cpName, cg.getMoves(), payload["moves"]))
-        if gameId != payload["id"]:
+        if gameId != payload["id"] and cg.getGameNr() == payload["gamenr"]:
             self.loadGame(payload["game"])
 
 
