@@ -23,16 +23,25 @@ class TileWidget(DraggablePanel):
         self.valueStr = str(self.tile.getValue())
         self.Bind(wx.EVT_PAINT,self.onPaint)
 
+    def getZoomFactor(self):
+        try: 
+            return self.GetParent().getZoomFactor()
+        finally:
+            return 1
+
+    def adjustSize(self, size, zf):
+        return (size[0]*zf,size[1]*zf)
+
     def onPaint(self, event):
         event.Skip()
         dc = wx.PaintDC(self)
-        self.drawBackground(dc)
-        self.drawFace(dc)
+        zf = self.getZoomFactor()
+        self.drawBackground(dc, zf)
+        self.drawFace(dc, zf)
 
-    def drawBackground(self, dc):
+    def drawBackground(self, dc, zf):
         self.paintStyler.select(STYLES[self.color], dc)
-        w,h = self.GetClientSize()
-        #dc.DrawRoundedRectangle(1,1,w-1,h-1,3)
+        w,h = self.adjustSize(self.GetClientSize(), zf)
         gc = wx.GraphicsContext.Create(dc)
         if gc:
             brushColor = dc.GetBrush().GetColour()
@@ -54,14 +63,14 @@ class TileWidget(DraggablePanel):
             gc.DrawPath(path)
       
 
-    def drawFace(self, dc):
+    def drawFace(self, dc, zf):
         self.paintStyler.select(STYLES[self.color], dc)
-        w,h = self.GetClientSize()
+        w,h = self.adjustSize(self.GetClientSize(), zf)
         if isinstance(self.tile, model.Joker):
-            iw,ih = TileWidget.yummyIcon.GetSize()
+            iw,ih = self.adjustSize(TileWidget.yummyIcon.GetSize(), zf)
             dc.DrawBitmap(TileWidget.yummyIcon, int(0.5*(w-iw)), int(0.5*(h-ih)))
         else:
-            tw,th = dc.GetTextExtent(self.valueStr)
+            tw,th = self.adjustSize(dc.GetTextExtent(self.valueStr), zf)
             tx,ty = (0.5*(w-tw), 0.5*(h-th))
             dc.DrawText(self.valueStr, tx, ty)
 

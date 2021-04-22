@@ -4,13 +4,24 @@ from gui.tilewidget import TileWidget
 from gui import draggable 
 
 class TileWidgetView(draggable.DraggablePanel):
-    def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
+    def __init__(self, parent, draggable=False, portable=False, zoomfactor=1, *args, **kwargs):
         super().__init__(parent, draggable, portable, *args, **kwargs)
         self.parent = parent
+        self.zoomfactor = zoomfactor
         self.__dropTargets__ = {}
         # by default, this instance is a drop target of itself
         #self.addTileWidgetDropTarget(self)
             
+    def setZoomFactor(self, zoomfactor):
+        self.zoomfactor = zoomfactor
+        self.Refresh()
+
+    def getZoomFactor(self):
+        if hasattr(self.parent, "zoomfactor"):
+            return self.zoomfactor * self.parent.getZoomFactor()
+        else:
+            return self.zoomfactor
+    
     def getObjectsByType(self, type):
         result = []
         children = self.GetChildren()
