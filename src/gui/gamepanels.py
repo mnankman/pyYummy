@@ -212,6 +212,8 @@ class GamePanel(TileWidgetView):
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
+        flexgrid = wx.FlexGridSizer(rows=3, cols=1, vgap=2, hgap=2)
+        vbox.Add(flexgrid, 2, wx.EXPAND)
 
         self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
         self.createPlayerWidgets()
@@ -220,9 +222,15 @@ class GamePanel(TileWidgetView):
         self.platePanel = PlatePanel(self, self.getPlayer())
         self.platePanel.addTileWidgetDropTarget(self)
         self.boardPanel.addTileWidgetDropTarget(self)
-        vbox.Add(self.boardPanel, 10, wx.EXPAND)
-        vbox.Add(self.platePanel, 4, wx.EXPAND)
-        vbox.Add(self.playerBox, 1, wx.EXPAND)
+        flexgrid.Add(self.boardPanel, 0, wx.EXPAND)
+        flexgrid.Add(self.platePanel)
+        flexgrid.Add(self.playerBox)
+        flexgrid.AddGrowableCol(0,1)
+        flexgrid.AddGrowableRow(0,20)
+        #flexgrid.AddGrowableRow(1,2)
+        #vbox.Add(self.boardPanel, 20, wx.EXPAND)
+        #vbox.Add(self.platePanel, 2, wx.EXPAND)
+        #vbox.Add(self.playerBox, 1, wx.EXPAND)
 
         self.SetSizer(vbox)
 
