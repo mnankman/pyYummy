@@ -11,7 +11,7 @@ from gui.gamepanels import GamePanel
 
 from base.model import Player, SynchronizingModel
 from base.controller import Controller
-from base.gameserver import GameServer
+from base import gameserver
 
 RESOURCES="src/resource"
 
@@ -145,7 +145,7 @@ class MainWindow(wx.Frame):
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
 
-        self.gs = GameServer()
+        self.gs = gameserver.Factory()
         self.gs.subscribe(self, "msg_new_game", self.onMsgNewGame)
         self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
         self.gs.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
