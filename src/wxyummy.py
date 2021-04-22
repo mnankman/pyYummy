@@ -136,7 +136,7 @@ class GamePopupMenu(wx.Menu):
 
 class MainWindow(wx.Frame):
     def __init__(self):
-        super().__init__(parent=None, title='Yummy')
+        super().__init__(parent=None, title='Yummy', size=(500,100))
         self.gameWindows = {}
 
         styles.init()
@@ -150,34 +150,31 @@ class MainWindow(wx.Frame):
         self.gs.subscribe(self, "msg_game_updated", self.onMsgGameUpdated)
         self.gs.subscribe(self, "msg_game_loaded", self.onMsgGameLoaded)
         self.currentGame = None
-        self.playerBtns = []
         self.focusedGame = None
 
         self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.createMenu()
-        self.btnSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer.Add(self.btnSizer)
-        self.SetSizer(self.sizer)
         self.createGameList()
         self.SetAutoLayout(1)
         self.sizer.Fit(self)
         self.Centre()
-        self.SetClientSize(400,100)
         self.SetPosition((0, 0))
+        self.SetSizer(self.sizer)
         self.Show()
+
         self.Bind(event=wx.EVT_CLOSE, handler=self.onUserCloseMainWindow)
 
         wx.PostEvent(self, wx.MenuEvent(wx.wxEVT_MENU, ID_NEWGAME))
 
     def createGameList(self):
-        self.list = wx.ListCtrl(self, -1, style = wx.LC_REPORT|wx.HSCROLL) 
-        self.list.InsertColumn(0, 'game', width = 100) 
+        self.list = wx.ListCtrl(self, -1, style = wx.LC_REPORT|wx.LC_SORT_ASCENDING|wx.HSCROLL|wx.EXPAND) 
+        self.list.InsertColumn(0, 'game', width = 50) 
         self.list.InsertColumn(1, 'players', wx.LIST_FORMAT_RIGHT, 100) 
         self.list.InsertColumn(2, 'moves', wx.LIST_FORMAT_RIGHT, 100) 
         self.list.InsertColumn(3, 'turn', wx.LIST_FORMAT_RIGHT, 100) 
-        self.sizer.Add(self.list)
-        #self.Bind(wx.EVT_LIST_ITEM_FOCUSED, self.onUserGameListItemFocus, self.list)
+        self.sizer.Add(self.list, 1, wx.EXPAND)
+
         self.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.onUserGameListItemRightClick, self.list)
 
     def createMenu(self):
@@ -241,22 +238,17 @@ class MainWindow(wx.Frame):
         
     def refresh(self):
         pass
-        '''
-        if self.currentGame!=None:
-            game = self.gs.getGame(self.currentGame)
-            self.destroyGameWindows()
-            for player in game.getPlayers():
-                self.addPlayerButton(player)
-        '''
 
     def refreshList(self):
         self.list.DeleteAllItems()
         data = self.gs.getGameData()
         for row in data:
-            index = self.list.InsertStringItem(5, str(row[0]))
-            self.list.SetStringItem(index, 1, str(row[1])) 
-            self.list.SetStringItem(index, 2, str(row[2]))
-            self.list.SetStringItem(index, 3, str(row[3]))
+            index = self.list.InsertItem(5, str(row[0]))
+            self.list.SetItem(index, 1, str(row[1])) 
+            self.list.SetItem(index, 2, str(row[2]))
+            self.list.SetItem(index, 3, str(row[3]))
+            self.list.SetItemData(index, row[0])
+        self.list.SortItems(lambda item1,item2: int(item1)-int(item2))
         if self.focusedGame==None:
             self.focusedGame = self.list.GetFocusedItem()
         elif self.focusedGame>=0:
@@ -270,15 +262,6 @@ class MainWindow(wx.Frame):
 
     def onMsgGameLoaded(self, payload):
         self.refreshList()
-
-    def onUserGameListItemFocus(self, e):
-        i = e.GetIndex()
-        data = self.gs.getGameData()
-        if data!=None and len(data)>0 and i>=0 :
-            selectedGame = data[i][0]
-            if selectedGame != self.currentGame:
-                self.currentGame = selectedGame
-                self.refresh()
 
     def onUserGameListItemRightClick(self, e):
         i = e.GetIndex()
