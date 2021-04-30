@@ -1,14 +1,4 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
-
-HOSTNAME= "localhost"
-PORT = 8000
-
-BASIC_STYLE = """
-body {
-    color: black;
-    background-color: white;
-}
-"""
+from lib import webserver
 
 YUMMY_STYLE = """
 body {
@@ -23,53 +13,26 @@ table, th, td {
 }
 """
 
-
 data = {}
 
-class HtmlComposer:
-    def html(self, title, body, style=BASIC_STYLE):
-        html = """
-        <html>
-            <head><style>{style}</style></head>
-            <body title='{title}'>{body}</body>
-        </html>
-        """
-        return bytes(html.format(style=style, title=title, body=body), "utf-8")
 
-    def tag(self, tag, content):
-        html = "<{tag}>{content}</{tag}>"
-        return html.format(tag=tag, content=content)
+class YummyHTTPRequestHandler(webserver.HTTPRequestHandler):
 
-    def render_dict(self, dict):
-        html = "<table>"
-        for k,v in dict.items():
-            row = "<tr><td>{}</td><td>{}</td></tr>"
-            html += row.format(k, v)
-        html += "</table>"
-        return html
-
-class YummyHTTPRequestHandler(BaseHTTPRequestHandler, HtmlComposer):
-
-    def do_headers(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-
-    def render_form(self, hostname, port):
+    def render_form(self):
         html = """
         <form action="http://{hostname}:{port}" method="POST">
         <input type="text" name="data" value="mydata" />
         <input type="submit" />
         </form>
         """
-        return html.format(hostname = hostname, port = port)
+        return html.format(hostname = self.get_hostname(), port = self.get_port())
 
     def render_home(self):
         self.wfile.write(
             self.html("YummyServer Home", 
                 self.tag("H1", "Yummy!")
                 + "<br/>" 
-                + self.render_form(HOSTNAME, PORT)
+                + self.render_form()
                 + "<br/>" 
                 + self.render_dict(data),
                 YUMMY_STYLE
@@ -81,10 +44,6 @@ class YummyHTTPRequestHandler(BaseHTTPRequestHandler, HtmlComposer):
         items = post_data.split("=")
         data[k] = items[1]
 
-    def do_GET(self):
-        self.do_headers()
-        self.render_home()
-
     def do_POST(self):
         self.do_headers()
         content_len = int(self.headers['content-length'])
@@ -92,9 +51,6 @@ class YummyHTTPRequestHandler(BaseHTTPRequestHandler, HtmlComposer):
         self.add_input(post_data.decode("utf-8"))
         self.render_home()
 
-    def do_PUT(self):
-        self.do_POST()
 
-
-httpd = HTTPServer((HOSTNAME, PORT), YummyHTTPRequestHandler)
-httpd.serve_forever()
+if __name__ == '__main__':
+    webserver.start_server(YummyHTTPRequestHandler)
