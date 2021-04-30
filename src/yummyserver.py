@@ -1,70 +1,100 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-hostname= "localhost"
-port = 8000
-postform = """
-<form action="http://{hostname}:{port}" method="POST">
-  <input type="text" name="data" value="mydata" />
-  <input type="submit" />
-</form>
+HOSTNAME= "localhost"
+PORT = 8000
+
+BASIC_STYLE = """
+body {
+    color: black;
+    background-color: white;
+}
 """
+
+YUMMY_STYLE = """
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: blue;
+    background-color: #cccccc;
+}
+h1   {color: blue;}
+table, th, td {
+    border-collapse: collapse;
+    border: 1px solid black;
+}
+"""
+
+
 data = {}
 
+class HtmlComposer:
+    def html(self, title, body, style=BASIC_STYLE):
+        html = """
+        <html>
+            <head><style>{style}</style></head>
+            <body title='{title}'>{body}</body>
+        </html>
+        """
+        return bytes(html.format(style=style, title=title, body=body), "utf-8")
 
-class YummyHTTPRequestHandler(BaseHTTPRequestHandler):
-
-    def _set_headers(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-    
-    def _html(self, content):
-        html = "<html><body>{}</body></html>"
-        return bytes(html.format(content), "utf-8")
-
-    def _tag(self, tag, content):
+    def tag(self, tag, content):
         html = "<{tag}>{content}</{tag}>"
         return html.format(tag=tag, content=content)
 
-    def _data(self):
+    def render_dict(self, dict):
         html = "<table>"
-        for k,v in data.items():
+        for k,v in dict.items():
             row = "<tr><td>{}</td><td>{}</td></tr>"
             html += row.format(k, v)
         html += "</table>"
         return html
 
-    def _home(self):
-        return self._html(
-            self._tag("H1", "Yummy!")
-            + "</br></br>" 
-            + postform.format(hostname = hostname, port = port)
-            + "</br></br>" 
-            + self._data()
+class YummyHTTPRequestHandler(BaseHTTPRequestHandler, HtmlComposer):
+
+    def do_headers(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+
+    def render_form(self, hostname, port):
+        html = """
+        <form action="http://{hostname}:{port}" method="POST">
+        <input type="text" name="data" value="mydata" />
+        <input type="submit" />
+        </form>
+        """
+        return html.format(hostname = hostname, port = port)
+
+    def render_home(self):
+        self.wfile.write(
+            self.html("YummyServer Home", 
+                self.tag("H1", "Yummy!")
+                + "<br/>" 
+                + self.render_form(HOSTNAME, PORT)
+                + "<br/>" 
+                + self.render_dict(data),
+                YUMMY_STYLE
+            )
         )
 
-    def _add_input(self, post_data):
+    def add_input(self, post_data):
         k = len(data)+1
         items = post_data.split("=")
         data[k] = items[1]
-        print("post_data = ", post_data)
 
     def do_GET(self):
-        print ("do_GET")
-        self._set_headers()
-        self.wfile.write(self._home())
+        self.do_headers()
+        self.render_home()
 
     def do_POST(self):
-        print ("do_POST")
-        self._set_headers()
+        self.do_headers()
         content_len = int(self.headers['content-length'])
         post_data = self.rfile.read(content_len)
-        self._add_input(post_data.decode("utf-8"))
-        self.wfile.write(self._home())
+        self.add_input(post_data.decode("utf-8"))
+        self.render_home()
 
     def do_PUT(self):
         self.do_POST()
 
 
-httpd = HTTPServer((hostname, port), YummyHTTPRequestHandler)
+httpd = HTTPServer((HOSTNAME, PORT), YummyHTTPRequestHandler)
 httpd.serve_forever()
