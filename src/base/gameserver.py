@@ -2,6 +2,11 @@ from lib import log
 from lib.pubsub import Publisher
 import json
 from . import model
+from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
+
+
+
+
 
 class GameServer(Publisher):
     '''
@@ -18,14 +23,6 @@ class GameServer(Publisher):
         Parameters:
         - players: the number of players
         Returns: the number of the created game
-        """
-        pass
-
-    def addGame(self, game):
-        """
-        Adds the provided model.Game instance to the server, and gives it the next available number.
-        Parameters:
-        - game: the instance of model.Game
         """
         pass
 
@@ -111,12 +108,12 @@ class LocalGameServer(GameServer):
         Returns: the number of the created game
         """
         g = model.Game(players)
-        self.addGame(g)
+        self._addGame(g)
         gameNr = g.getGameNr()
         self.dispatch("msg_new_game", {"id": self.__games__[gameNr].getId(), "gamenr": gameNr, "game": self.__games__[gameNr].serialize()})
         return gameNr
 
-    def addGame(self, game):
+    def _addGame(self, game):
         """
         Adds the provided model.Game instance to the server, and gives it the next available number.
         Parameters:
@@ -216,7 +213,7 @@ class LocalGameServer(GameServer):
             g = model.Game()
             data = json.loads(saved)
             g.deserialize(data)
-            self.addGame(g)
+            self._addGame(g)
             self.dispatch("msg_game_loaded", {"id": g.getId(), "gamenr": g.getGameNr(), "game": data})
             #g.print()
             return g.getGameNr()
