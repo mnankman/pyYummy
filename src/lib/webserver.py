@@ -72,3 +72,6 @@ DEFAULT_PORT = 8000
 def start_server(handler_class=HTTPRequestHandler, hostname=DEFAULT_HOSTNAME, port=DEFAULT_PORT):
     httpd = HTTPServer((hostname, port), handler_class)
     httpd.serve_forever()
+
+if __name__ == '__main__':
+    start_server(HTTPRequestHandler)
