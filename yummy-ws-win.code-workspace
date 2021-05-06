@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"code-runner.saveAllFilesBeforeRun": true,
+		"code-runner.runInTerminal": true,
+		"python.venvPath": "$USERPROFILE/environments",
+		"python.pythonPath": "$USERPROFILE/environments/yummy/Scripts/python",
+		"python.linting.pylintArgs": ["--extension-pkg-whitelist=wx"],
+		"terminal.integrated.fontSize": 10
+	}
+}
