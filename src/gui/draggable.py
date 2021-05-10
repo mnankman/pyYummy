@@ -45,9 +45,10 @@ class DraggablePanel(wx.Panel):
         acceptEvt = DraggableAcceptEvent(pos=self.GetScreenPosition(), obj=self)
         wx.PostEvent(self, acceptEvt)
 
-    def reject(self):
-        log.debug(function=self.reject, args=self.GetName())
-        self.restorePositionBeforeDrag()
+    def reject(self, endOfEventChain=False):
+        log.debug(function=self.reject, args=(self.GetName(), endOfEventChain))
+        if endOfEventChain:
+            self.restorePositionBeforeDrag()
 
     def restorePositionBeforeDrag(self):
         log.debug(function=self.restorePositionBeforeDrag, args=(self.__parentBeforeDrag__,self.__posBeforeDrag__))
@@ -162,6 +163,8 @@ class DraggableDropTarget(DraggablePanel):
         event.Skip()
 
     def onDraggableRelease(self, event):
+        log.debug(function=self.onDraggableRelease, args=self.GetName())
+        event.Skip(False)
         assert isinstance(event.obj, DraggablePanel)
         if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()):
             event.obj.accept(self)
@@ -169,7 +172,7 @@ class DraggableDropTarget(DraggablePanel):
             self.Refresh()
         else:
             event.obj.reject()
-            event.Skip()
+            event.Skip(True)
 
     def onDraggableAccept(self, event):
         self.Refresh()
@@ -178,6 +181,10 @@ class DraggableDropTarget(DraggablePanel):
         event.Skip()
         dc = wx.PaintDC(self)
         self.draw(dc)
+
+    def getLabel(self):
+        lbl = """{name}({children})"""
+        return lbl.format(name=self.GetName(), children=len(self.GetChildren()))
 
     def draw(self, dc):
         if self.__highlight__:
@@ -188,4 +195,8 @@ class DraggableDropTarget(DraggablePanel):
             else:
                 self.paintStyler.select("DraggableDropTarget:normal", dc)
         w,h = self.GetClientSize()
+        lbl = self.getLabel()
+        tw,th = dc.GetTextExtent(lbl)
+        tx,ty = (0.5*(w-tw), (h-th-5))
+        dc.DrawText(lbl, tx, ty)
         dc.DrawRectangle(0,0,w,h)

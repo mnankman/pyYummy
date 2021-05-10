@@ -125,7 +125,7 @@ def init():
     styleCat.addStyle(
         styleName = "DraggableDropTarget:normal",
         elements=[
-            wx.Font(8, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
+            wx.Font(10, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
                 underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT),
             wx.TRANSPARENT_PEN,
             wx.TRANSPARENT_BRUSH,

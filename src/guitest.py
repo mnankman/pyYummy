@@ -81,16 +81,16 @@ class MainWindow(wx.Frame):
         self.addFrame(f)
 
         basePanel = draggable.DraggableDropTarget(f, False, name="base")
-        basePanel.SetBackgroundColour("#CCCCCC")
+        basePanel.SetBackgroundColour("#000000")
 
         target1 = draggable.DraggableDropTarget(basePanel, True, False, name="target1", pos=(20,20), size=(200,200), style=wx.CLIP_CHILDREN)
-        target1.SetBackgroundColour("#888888")
+        target1.SetBackgroundColour("#444444")
 
         target2 = draggable.DraggableDropTarget(basePanel, True, True, name="target2", pos=(300,300), size=(100,100), style=wx.CLIP_CHILDREN)
-        target2.SetBackgroundColour("#444444")
+        target2.SetBackgroundColour("#004400")
 
         target3 = draggable.DraggableDropTarget(basePanel, True, True, name="target3", pos=(20,300), size=(100,100), style=wx.CLIP_CHILDREN)
-        target3.SetBackgroundColour("#444444")
+        target3.SetBackgroundColour("#440000")
 
         draggable1 = draggable.DraggablePanel(target1, True, False, name="draggable1", pos=(5,5), size=(30,30), style=wx.CLIP_CHILDREN)
         draggable1.SetBackgroundColour("#880000")
@@ -98,7 +98,6 @@ class MainWindow(wx.Frame):
         draggable2 = draggable.DraggablePanel(target1, True, True, name="draggable2", pos=(50,50), size=(50,50), style=wx.CLIP_CHILDREN)
         draggable2.SetBackgroundColour("#008800")
 
-        basePanel.bindToDraggableEvents(draggable2)
         basePanel.bindToDraggableEvents(target2)
         target1.bindToDraggableEvents(draggable2)
         target1.bindToDraggableEvents(target2)
