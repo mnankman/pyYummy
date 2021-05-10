@@ -1,6 +1,7 @@
 import wx
 import wx.lib.newevent
-from lib import log
+from lib import log, util
+from gui.styler import PaintStyler
 
 DraggableHoverEvent, EVT_DRAGGABLE_HOVER = wx.lib.newevent.NewEvent()
 DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
@@ -33,7 +34,7 @@ class DraggablePanel(wx.Panel):
         return self.__portable__
 
     def accept(self, newParent):
-        log.debug(function=self.accept)
+        log.debug(function=self.accept, args=(self.GetName(), newParent.GetName()))
         if self.isPortable():
             self.Reparent(newParent)
         mx,my = self.GetParent().ScreenToClient(wx.GetMousePosition())
@@ -45,7 +46,7 @@ class DraggablePanel(wx.Panel):
         wx.PostEvent(self, acceptEvt)
 
     def reject(self):
-        log.debug(function=self.reject)
+        log.debug(function=self.reject, args=self.GetName())
         self.restorePositionBeforeDrag()
 
     def restorePositionBeforeDrag(self):
@@ -59,7 +60,7 @@ class DraggablePanel(wx.Panel):
 
     def dragStart(self):
         if not self.isBeingDragged():
-            log.debug(function=self.dragStart)
+            log.debug(function=self.dragStart, args=self.GetName())
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
             if self.isPortable(): self.Reparent(self.getTopLevelPanel())
@@ -73,11 +74,12 @@ class DraggablePanel(wx.Panel):
 
     def drop(self):
         if self.isBeingDragged():
-            log.debug(function=self.drop)
+            log.debug(function=self.drop, args=self.GetName())
             if (self.HasCapture()): self.ReleaseMouse()
             self.__dragged__ = False
             releaseEvt = DraggableReleaseEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
+            self.Refresh()
             
     def OnMouseDown(self, event):
         if not self.isDraggable(): return
@@ -94,6 +96,7 @@ class DraggablePanel(wx.Panel):
             self.Move((mx-ox, my-oy))
             hoverEvt = DraggableHoverEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, hoverEvt)
+            self.Refresh()
 
     def OnMouseUp(self, event):
         if not self.isDraggable(): return
@@ -114,4 +117,75 @@ class DraggablePanel(wx.Panel):
     def OnMouseLeave(self, event):
         self.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
 
+class DraggableDropTarget(DraggablePanel):
+    def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
+        super().__init__(parent, draggable, portable, *args, **kwargs)
+        self.parent = parent
+        self.__highlight__ = False
+        self.__mouseOver__ = False
+        self.Bind(wx.EVT_PAINT,self.onPaint)
+        self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
+        self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
+        self.paintStyler = PaintStyler()
 
+    def getObjectsByType(self, type):
+        result = []
+        children = self.GetChildren()
+        for c in children:
+            if isinstance(c, type):
+                result.append(c)
+        return result
+
+    def bindToDraggableEvents(self, draggable):
+        assert draggable
+        assert isinstance(draggable, DraggablePanel)
+        draggable.Bind(EVT_DRAGGABLE_HOVER, self.onDraggableHover)
+        draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
+        draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
+    
+    def onMouseEnter(self, event):
+        self.__mouseOver__ = True
+        self.Refresh()
+        event.Skip()
+
+    def onMouseLeave(self, event):
+        self.__mouseOver__ = False
+        self.Refresh()
+        event.Skip()
+
+    def onDraggableHover(self, event):
+        if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()):
+            self.__highlight__ = True
+        else:
+            self.__highlight__ = False
+        self.Refresh()
+        event.Skip()
+
+    def onDraggableRelease(self, event):
+        assert isinstance(event.obj, DraggablePanel)
+        if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()):
+            event.obj.accept(self)
+            self.__highlight__ = False
+            self.Refresh()
+        else:
+            event.obj.reject()
+            event.Skip()
+
+    def onDraggableAccept(self, event):
+        self.Refresh()
+
+    def onPaint(self, event):
+        event.Skip()
+        dc = wx.PaintDC(self)
+        self.draw(dc)
+
+    def draw(self, dc):
+        if self.__highlight__:
+            self.paintStyler.select("DraggableDropTarget:highlight", dc)
+        else:
+            if self.__mouseOver__:
+                self.paintStyler.select("DraggableDropTarget:mouseOver", dc)
+            else:
+                self.paintStyler.select("DraggableDropTarget:normal", dc)
+        w,h = self.GetClientSize()
+        dc.DrawRectangle(0,0,w,h)

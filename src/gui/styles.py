@@ -117,3 +117,30 @@ def init():
         basedOn = "PlayerWidget:base",
         elements = [wx.Brush("#006633", style=wx.BRUSHSTYLE_SOLID)]
     )
+
+    """
+    Style definitions for DraggableDropTarget
+    """
+    
+    styleCat.addStyle(
+        styleName = "DraggableDropTarget:normal",
+        elements=[
+            wx.Font(8, family = wx.FONTFAMILY_MODERN, style = 0, weight = 100, 
+                underline = False, faceName ="", encoding = wx.FONTENCODING_DEFAULT),
+            wx.TRANSPARENT_PEN,
+            wx.TRANSPARENT_BRUSH,
+            styler.Colors(textForeground="White")
+        ],
+    )
+
+    styleCat.addStyle(
+        styleName = "DraggableDropTarget:mouseOver", 
+        basedOn = "DraggableDropTarget:normal",
+        elements = [wx.Pen("Black", width=2, style=wx.PENSTYLE_SOLID)]
+    )
+
+    styleCat.addStyle(
+        styleName = "DraggableDropTarget:highlight", 
+        basedOn = "DraggableDropTarget:normal",
+        elements = [wx.Pen("Green", width=2, style=wx.PENSTYLE_SOLID)]
+    )
