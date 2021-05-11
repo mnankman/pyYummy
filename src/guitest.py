@@ -77,7 +77,7 @@ class MainWindow(wx.Frame):
         f.Bind(event=wx.EVT_CLOSE, handler=lambda e: self.closeFrame(f, e))
 
     def onUserDraggableTest(self, e):
-        f = wx.Frame(parent=None, title='Draggable Test', size=(500,500))
+        f = draggable.DraggableDropFrame(parent=None, title='Draggable Test', size=(500,500))
         self.addFrame(f)
 
         basePanel = draggable.DraggableDropTarget(f, False, name="base")
@@ -98,6 +98,7 @@ class MainWindow(wx.Frame):
         draggable2 = draggable.DraggablePanel(target1, True, True, name="draggable2", pos=(50,50), size=(50,50), style=wx.CLIP_CHILDREN)
         draggable2.SetBackgroundColour("#008800")
 
+        f.bindToDraggableEvents(draggable2)
         basePanel.bindToDraggableEvents(target2)
         target1.bindToDraggableEvents(draggable2)
         target1.bindToDraggableEvents(target2)

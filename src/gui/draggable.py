@@ -24,6 +24,17 @@ class DraggablePanel(wx.Panel):
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
 
+    def __AddChild(self, newChild):
+        log.debug(function=self.AddChild, args=newChild)
+        children = []
+        for c in self.GetChildren():
+            children.append(c)
+        for c in children:
+            self.RemoveChild(c)
+        super().AddChild(newChild)
+        for c in children:
+            super().AddChild(c)
+
     def isBeingDragged(self):
         return self.__dragged__
 
@@ -45,9 +56,9 @@ class DraggablePanel(wx.Panel):
         acceptEvt = DraggableAcceptEvent(pos=self.GetScreenPosition(), obj=self)
         wx.PostEvent(self, acceptEvt)
 
-    def reject(self, endOfEventChain=False):
-        log.debug(function=self.reject, args=(self.GetName(), endOfEventChain))
-        if endOfEventChain:
+    def reject(self, restore=False):
+        log.debug(function=self.reject, args=self.GetName())
+        if restore:
             self.restorePositionBeforeDrag()
 
     def restorePositionBeforeDrag(self):
@@ -59,18 +70,27 @@ class DraggablePanel(wx.Panel):
             self.__posBeforeDrag__ = None
             self.__parentBeforeDrag__ = None
 
+    def _Reparent(self, newParent):
+        currParent = self.GetParent()
+        currParent.RemoveChild(self)
+        newParent.AddChild(self)
+
     def dragStart(self):
         if not self.isBeingDragged():
             log.debug(function=self.dragStart, args=self.GetName())
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
-            if self.isPortable(): self.Reparent(self.getTopLevelPanel())
+            if self.isPortable(): 
+                newParent = self.getTopLevelPanel()
+                self.Reparent(newParent)
             self.__dragged__ = True
+            self.SetFocus()
 
     def getTopLevelPanel(self):
         tlp = self.GetParent()
         while tlp.GetParent() and isinstance(tlp.GetParent(), wx.Panel):
             tlp = tlp.GetParent()
+        log.debug(function=self.getTopLevelPanel, args=self.GetName(), returns=tlp.GetName())
         return tlp
 
     def drop(self):
@@ -113,10 +133,10 @@ class DraggablePanel(wx.Panel):
 
     def OnMouseEnter(self, event):
         if self.isDraggable():
-            self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+            self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
     def OnMouseLeave(self, event):
-        self.SetCursor(wx.StockCursor(wx.CURSOR_ARROW))
+        self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
 class DraggableDropTarget(DraggablePanel):
     def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
@@ -128,6 +148,14 @@ class DraggableDropTarget(DraggablePanel):
         self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.paintStyler = PaintStyler()
+        self.sizer = NoneSizer()
+        self.SetSizer(self.sizer)
+
+    def AddChild(self, child):
+        super().AddChild(child)
+        s = child.GetContainingSizer()
+        if s: s.Detach(child)
+        self.sizer.Insert(0, child)
 
     def getObjectsByType(self, type):
         result = []
@@ -200,3 +228,31 @@ class DraggableDropTarget(DraggablePanel):
         tx,ty = (0.5*(w-tw), (h-th-5))
         dc.DrawText(lbl, tx, ty)
         dc.DrawRectangle(0,0,w,h)
+
+class DraggableDropFrame(wx.Frame):
+    def __init__(self, parent, *args, **kwargs):
+        wx.Frame.__init__(self, parent, *args, **kwargs)
+
+    def bindToDraggableEvents(self, draggable):
+        assert draggable
+        assert isinstance(draggable, DraggablePanel)
+        draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
+        draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
+
+    def onDraggableRelease(self, event):
+        log.debug(function=self.onDraggableRelease, args=self.GetName())
+        event.obj.reject(True)
+
+    def onDraggableAccept(self, event):
+        pass
+
+class NoneSizer(wx.Sizer):
+    def __init__(self):
+        super().__init__()
+
+    def CalcMin(self):
+        log.debug(function=self.CalcMin)
+        return self.GetContainingWindow().GetSize()
+
+    def RepositionChildren(self, minSize):
+        pass
