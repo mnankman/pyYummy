@@ -23,6 +23,7 @@ class DraggablePanel(wx.Panel):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
+        self.__dragPanel__ = None
 
     def __AddChild(self, newChild):
         log.debug(function=self.AddChild, args=newChild)
@@ -81,10 +82,25 @@ class DraggablePanel(wx.Panel):
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
             if self.isPortable(): 
-                newParent = self.getTopLevelPanel()
+                newParent = self.createDragPanel()
                 self.Reparent(newParent)
             self.__dragged__ = True
-            self.SetFocus()
+            self.Raise()
+
+    def createDragPanel(self):
+        log.debug(function=self.createDragPanel, args=self.GetName())
+        base = self.getTopLevelPanel()
+        self.__dragPanel__ = wx.Panel(base, name=self.GetName()+"_dragpanel", size=base.GetSize(), style=wx.TRANSPARENT_WINDOW)
+        return self.__dragPanel__
+
+    def destroyDragPanel(self):
+        log.debug(function=self.destroyDragPanel, args=self.GetName())
+        if self.__dragPanel__:
+            base = self.__dragPanel__.GetParent()
+            for c in self.__dragPanel__.GetChildren():
+                c.Reparent(base)
+            self.__dragPanel__.Destroy()
+            del self.__dragPanel__
 
     def getTopLevelPanel(self):
         tlp = self.GetParent()
@@ -98,6 +114,7 @@ class DraggablePanel(wx.Panel):
             log.debug(function=self.drop, args=self.GetName())
             if (self.HasCapture()): self.ReleaseMouse()
             self.__dragged__ = False
+            self.destroyDragPanel()
             releaseEvt = DraggableReleaseEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, releaseEvt)
             self.Refresh()
@@ -148,14 +165,6 @@ class DraggableDropTarget(DraggablePanel):
         self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
         self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.paintStyler = PaintStyler()
-        self.sizer = NoneSizer()
-        self.SetSizer(self.sizer)
-
-    def AddChild(self, child):
-        super().AddChild(child)
-        s = child.GetContainingSizer()
-        if s: s.Detach(child)
-        self.sizer.Insert(0, child)
 
     def getObjectsByType(self, type):
         result = []
