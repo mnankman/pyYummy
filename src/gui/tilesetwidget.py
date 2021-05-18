@@ -22,8 +22,6 @@ class TileSetWidget(TileWidgetView):
 
         self.Bind(wx.EVT_PAINT,self.onPaint)
         self.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.onDragRelease)
-        self.Bind(wx.EVT_ENTER_WINDOW, self.onMouseEnter)
-        self.Bind(wx.EVT_LEAVE_WINDOW, self.onMouseLeave)
         self.set.subscribe(self, "msg_object_modified", self.onMsgSetModified)
 
     def Destroy(self):
@@ -35,14 +33,6 @@ class TileSetWidget(TileWidgetView):
         if self.newTilePos != None:
             stateStr += ","+str(self.newTilePos)
         return stateStr
-
-    def onMouseEnter(self, event):
-        self.mouseOver = True
-        self.Refresh()
-
-    def onMouseLeave(self, event):
-        self.mouseOver = False
-        self.Refresh()
 
     def onDragRelease(self, event):
         x,y = self.GetParent().ScreenToClient(event.pos)
@@ -66,7 +56,7 @@ class TileSetWidget(TileWidgetView):
         else:
             if self.set.isModified():
                 self.paintStyler.select("TileSetWidget:modified", dc)
-            elif self.mouseOver:
+            elif self.isMouseOver():
                 self.paintStyler.select("TileSetWidget:mouseOver", dc)
             else:
                 self.paintStyler.select("TileSetWidget:normal", dc)
@@ -121,10 +111,10 @@ class TileSetWidget(TileWidgetView):
         self.refreshLayout()
 
     def rebuildTile(self, tile):
-        tileWidget = TileWidget(self, tile)
-        self.addTileWidget(tileWidget)
-        tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
-        tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
+        tileWidget = self.addTileWidget(tile)
+        self.GetParent().bindToDraggableEvents(tileWidget)
+        #tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, self.GetParent().onTileHover)
+        #tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, self.GetParent().onTileRelease)  
         tileWidget.Bind(draggable.EVT_DRAGGABLE_ACCEPT, self.onTileAccept)  
         return tileWidget
     
@@ -147,7 +137,8 @@ class TileSetWidget(TileWidgetView):
 
     def onTileHover(self, event):
         tile = event.obj.tile
-        if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()) and self.set.tileFitPosition(tile)>0:
+        #if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()) and self.set.tileFitPosition(tile)>0:
+        if self.isDraggableOver() and self.set.tileFitPosition(tile)>0:
             self.highlight = True
             self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
         else:

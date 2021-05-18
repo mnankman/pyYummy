@@ -6,7 +6,7 @@ from wx.lib.inspection import InspectionTool
 
 from lib import log
 
-from gui import styles
+from gui import styles, draggable
 from gui.gamepanels import GamePanel
 
 from base.model import Player, SynchronizingModel
@@ -81,9 +81,9 @@ class ButtonBar(wx.Panel):
         self.parent.onUserToggleSort(event)
         event.Skip()
 
-class GameWindow(wx.Frame):
+class GameWindow(draggable.DraggableDropFrame):
     def __init__(self, controller, playerName):
-        super().__init__(parent=None, title=playerName)
+        super().__init__(parent=None, title=playerName, name="Game Window", style=wx.TRANSPARENT_WINDOW)
         iconFile = RESOURCES+"/yummy-icon-28-white.png"
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
@@ -332,9 +332,9 @@ def start():
     log.setLoggerLevel("base.persistentobject", logging.ERROR)
     log.setLoggerLevel("base.modelobject", logging.ERROR)
     log.setLoggerLevel("base.tilecontainer", logging.ERROR)
-    log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
+    #log.setLoggerLevel("gui.tilewidgetview", logging.ERROR)
     log.setLoggerLevel("gui.tilesetwidget", logging.ERROR)
-    log.setLoggerLevel("gui.gamepanels", logging.ERROR)
+    #log.setLoggerLevel("gui.gamepanels", logging.ERROR)
     app = WxAsyncApp()
     loop = asyncio.get_event_loop()
     w = MainWindow()

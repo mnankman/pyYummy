@@ -144,3 +144,15 @@ def init():
         basedOn = "DraggableDropTarget:normal",
         elements = [wx.Pen("Green", width=2, style=wx.PENSTYLE_SOLID)]
     )
+
+    """
+    Style definitions for DragPlane
+    """
+    
+    styleCat.addStyle(
+        styleName = "DragPlane:normal",
+        elements = [
+            wx.TRANSPARENT_BRUSH,
+            wx.Pen("Red", width=2, style=wx.PENSTYLE_SOLID)
+        ]
+    )

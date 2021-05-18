@@ -8,8 +8,8 @@ from base import model, controller
 from lib import util, log
 
 class BoardPanel(TileWidgetView):    
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, parent, *args, **kwargs):
+        super().__init__(parent, name="board panel", *args, **kwargs)
         self.board = None
         self.SetBackgroundColour('#888888')
         
@@ -95,7 +95,7 @@ class BoardPanel(TileWidgetView):
         self.triggerTileSetWidgets(event)
 
     def onTileRelease(self, event):
-        log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
+        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.GetName()))
         x,y = self.getEventPosition(event)
         tw,th = event.obj.GetSize()
         tile = event.obj.tile
@@ -126,8 +126,8 @@ class BoardPanel(TileWidgetView):
             self.addTileSetWidget(payload["child"])
 
 class PlatePanel(TileWidgetView):    
-    def __init__(self, parent, player):
-        super().__init__(parent)
+    def __init__(self, parent, player, *args, **kwargs):
+        super().__init__(parent, name="plate panel", *args, **kwargs)
         self.SetBackgroundColour('#CCCCCC')
         self.sortMethod = 0
         self.setPlayer(player)
@@ -169,8 +169,7 @@ class PlatePanel(TileWidgetView):
         for t in self.getPlateValues():
             tileWidget = self.findTileWidgetById(t.id())
             if not tileWidget: 
-                tileWidget = TileWidget(self, t)
-                self.addTileWidget(tileWidget)
+                tileWidget = self.addTileWidget(t)
             tileWidget.Move((tx,ty))
             tw,th = tileWidget.GetSize()
             tx = tx+tw+1
@@ -202,9 +201,9 @@ class PlatePanel(TileWidgetView):
 
 class GamePanel(TileWidgetView):    
     def __init__(self, parent, cntrlr, player):
-        super().__init__(parent=parent, size=(800,600))
+        super().__init__(parent=parent, name="game panel", size=(800,600), style=wx.TRANSPARENT_WINDOW)
 #        super().__init__(parent=parent)
-        self.SetBackgroundColour('#CCCCCC')
+        #self.SetBackgroundColour('#CCCCCC')
         assert isinstance(cntrlr, controller.Controller)
         assert isinstance(player, model.Player)
         self.controller = cntrlr
@@ -212,25 +211,22 @@ class GamePanel(TileWidgetView):
         self.sortMethod = 0
         
         vbox = wx.BoxSizer(wx.VERTICAL)
-        flexgrid = wx.FlexGridSizer(rows=3, cols=1, vgap=2, hgap=2)
-        vbox.Add(flexgrid, 2, wx.EXPAND)
-
-        self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
-        self.createPlayerWidgets()
 
         self.boardPanel = BoardPanel(self)
         self.platePanel = PlatePanel(self, self.getPlayer())
+        self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
+        self.createPlayerWidgets()
+
         self.platePanel.addTileWidgetDropTarget(self)
         self.boardPanel.addTileWidgetDropTarget(self)
+
+        flexgrid = wx.FlexGridSizer(rows=3, cols=1, vgap=2, hgap=2)
+        vbox.Add(flexgrid, 2, wx.EXPAND)
         flexgrid.Add(self.boardPanel, 0, wx.EXPAND)
         flexgrid.Add(self.platePanel)
         flexgrid.Add(self.playerBox)
         flexgrid.AddGrowableCol(0,1)
         flexgrid.AddGrowableRow(0,20)
-        #flexgrid.AddGrowableRow(1,2)
-        #vbox.Add(self.boardPanel, 20, wx.EXPAND)
-        #vbox.Add(self.platePanel, 2, wx.EXPAND)
-        #vbox.Add(self.playerBox, 1, wx.EXPAND)
 
         self.SetSizer(vbox)
 

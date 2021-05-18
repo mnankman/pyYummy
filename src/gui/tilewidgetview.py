@@ -2,8 +2,9 @@ import wx
 from lib import log
 from gui.tilewidget import TileWidget
 from gui import draggable 
+from base.tile import Tile
 
-class TileWidgetView(draggable.DraggablePanel):
+class TileWidgetView(draggable.DraggableDropTarget):
     def __init__(self, parent, draggable=False, portable=False, zoomfactor=1, *args, **kwargs):
         super().__init__(parent, draggable, portable, *args, **kwargs)
         self.parent = parent
@@ -33,18 +34,14 @@ class TileWidgetView(draggable.DraggablePanel):
     def getTileWidgets(self):
         return self.getObjectsByType(TileWidget)
 
-    def addTileWidget(self, tileWidget):
+    def addTileWidget(self, tile):
+        assert isinstance(tile, Tile)
+        tileWidget = TileWidget(self, tile)
         if self.__dropTargets__:
             for target, enabled in self.__dropTargets__.items():
                 if enabled:
-                    self.bindToTileWidgetDraggableEvents(target, tileWidget)
-
-    def bindToTileWidgetDraggableEvents(self, target, tileWidget):
-        assert tileWidget
-        assert isinstance(tileWidget, TileWidget)
-        #log.debug(function=self.bindToTileWidgetDraggableEvents, args=(target,tileWidget.tile))
-        tileWidget.Bind(draggable.EVT_DRAGGABLE_HOVER, target.onTileHover)
-        tileWidget.Bind(draggable.EVT_DRAGGABLE_RELEASE, target.onTileRelease)
+                    target.bindToDraggableEvents(tileWidget)
+        return tileWidget
 
     def findTileWidgetById(self, tId):
         result = None
@@ -70,8 +67,29 @@ class TileWidgetView(draggable.DraggablePanel):
         assert isinstance (target, TileWidgetView)
         self.__dropTargets__[target] = enabled
  
+    def onDraggableHover(self, event):
+        if isinstance(event.obj, TileWidget):
+            self.onTileHover(event)
+        super().onDraggableHover(event)
+
+    def onDraggableRelease(self, event):
+        if isinstance(event.obj, TileWidget):
+            self.onTileRelease(event)
+        super().onDraggableRelease(event)
+
+    def onDraggableAccept(self, event):
+        super().onDraggableAccept(event)
+
     def onTileHover(self, event):
         pass
+
+    def onTileRelease(self, event):
+        log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
+        if isinstance(event.obj, TileWidget):
+            tileWidget = event.obj
+            #for now, the default actions is to reject any tilewidget that is dropped on it
+            #subclasses should override this method to implement specific behaviour 
+            tileWidget.reject()
 
     def getEventPosition(self, event):
         return self.ScreenToClient(event.pos)
@@ -85,11 +103,4 @@ class TileWidgetView(draggable.DraggablePanel):
         log.debug(function=self.getEventObjectRect, args=event, returns=(x,y,w,h))
         return (x, y, w, h)
 
-    def onTileRelease(self, event):
-        log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
-        if isinstance(event.obj, TileWidget):
-            tileWidget = event.obj
-            #for now, the default actions is to reject any tilewidget that is dropped on it
-            #subclasses should override this method to implement specific behaviour 
-            tileWidget.reject()
 
