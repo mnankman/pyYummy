@@ -6,7 +6,9 @@ from wx.lib.inspection import InspectionTool
 
 from lib import log
 
-from gui import styles, draggable
+from gui import styles, draggable, tilewidget
+
+from base.tile import TileFactory
 
 RESOURCES="src/resource"
 ID_EXIT=200
@@ -92,10 +94,10 @@ class MainWindow(wx.Frame):
         target3 = draggable.DraggableDropTarget(basePanel, True, True, name="target3", pos=(20,300), size=(100,100), style=wx.CLIP_CHILDREN)
         target3.SetBackgroundColour("#440000")
 
-        draggable1 = draggable.DraggablePanel(target1, True, False, name="draggable1", pos=(5,5), size=(30,30), style=wx.CLIP_CHILDREN)
+        draggable1 = draggable.DraggableControl(target1, True, False, name="draggable1", pos=(5,5), size=(30,30), style=wx.CLIP_CHILDREN)
         draggable1.SetBackgroundColour("#880000")
 
-        draggable2 = draggable.DraggablePanel(target1, True, True, name="draggable2", pos=(50,50), size=(50,50), style=wx.CLIP_CHILDREN)
+        draggable2 = draggable.DraggableControl(target1, True, True, name="draggable2", pos=(50,50), size=(50,50), style=wx.CLIP_CHILDREN)
         draggable2.SetBackgroundColour("#008800")
 
         f.bindToDraggableEvents(draggable2)
@@ -104,6 +106,12 @@ class MainWindow(wx.Frame):
         target1.bindToDraggableEvents(target2)
         target2.bindToDraggableEvents(draggable2)
         target3.bindToDraggableEvents(draggable2)
+
+        tw = tilewidget.TileWidget(target1, TileFactory.getInstance().createJoker(1,0,None))
+        target1.bindToDraggableEvents(tw)
+        target2.bindToDraggableEvents(tw)
+        target3.bindToDraggableEvents(tw)
+
 
         f.Show()
         e.Skip()

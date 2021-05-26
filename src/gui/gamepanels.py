@@ -217,8 +217,8 @@ class GamePanel(TileWidgetView):
         self.playerBox = wx.BoxSizer(wx.HORIZONTAL)
         self.createPlayerWidgets()
 
-        self.platePanel.addTileWidgetDropTarget(self)
-        self.boardPanel.addTileWidgetDropTarget(self)
+        self.platePanel.addTileWidgetDropTarget(self.boardPanel)
+        #self.boardPanel.addTileWidgetDropTarget(self)
 
         flexgrid = wx.FlexGridSizer(rows=3, cols=1, vgap=2, hgap=2)
         vbox.Add(flexgrid, 2, wx.EXPAND)

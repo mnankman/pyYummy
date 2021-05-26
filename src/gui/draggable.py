@@ -7,9 +7,9 @@ DraggableHoverEvent, EVT_DRAGGABLE_HOVER = wx.lib.newevent.NewEvent()
 DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
 DraggableAcceptEvent, EVT_DRAGGABLE_ACCEPT = wx.lib.newevent.NewEvent()
 
-class DraggablePanel(wx.Panel):
+class DraggableControl(wx.Panel):
     def __init__(self, parent, draggable=True, portable=True, *args, **kwargs):
-        wx.Panel.__init__(self, parent, *args, **kwargs)
+        super().__init__(parent, *args, **kwargs)
         self.grandparent = parent.GetParent()
         self.mOffset = (0,0) #the relative pos within the dragged object where the mouse was clicked
         self.__draggable__ = draggable
@@ -23,7 +23,7 @@ class DraggablePanel(wx.Panel):
         self.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouseLeave)
         self.__posBeforeDrag__ = None
         self.__parentBeforeDrag__ = None
-        self.__dragPanel__ = None
+        self.__dragPlane__ = None
 
     def __AddChild(self, newChild):
         log.debug(function=self.AddChild, args=newChild)
@@ -77,7 +77,7 @@ class DraggablePanel(wx.Panel):
             self.__posBeforeDrag__ = self.GetPosition()
             self.__parentBeforeDrag__ = self.GetParent()
             if self.isPortable(): 
-                self.__dragPanel__ = DragPlane(self.getTopLevelPanel(), self)
+                self.__dragPlane__ = DragPlane(self.getTopLevelPanel(), self)
             self.__dragged__ = True
             self.Raise()
 
@@ -86,13 +86,13 @@ class DraggablePanel(wx.Panel):
         Destroys the temporary drag panel if it is active.
         """
         log.debug(function=self.destroyDragPanel, args=self.GetName())
-        if self.__dragPanel__:
-            self.__dragPanel__.Destroy()
-            del self.__dragPanel__
+        if self.__dragPlane__:
+            self.__dragPlane__.Destroy()
+            del self.__dragPlane__
 
     def getTopLevelPanel(self):
         """
-        Returns the top most parent that is an instance of wx.Panel for this DraggablePanel instance.
+        Returns the top most parent that is an instance of wx.Panel for this DraggableControl instance.
         """
         tlp = self.GetParent()
         while tlp.GetParent() and isinstance(tlp.GetParent(), wx.Panel):
@@ -125,7 +125,7 @@ class DraggablePanel(wx.Panel):
             self.Move((mx-ox, my-oy))
             hoverEvt = DraggableHoverEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, hoverEvt)
-            self.Refresh()
+            #self.Refresh()
 
     def OnMouseUp(self, event):
         if not self.isDraggable(): return
@@ -147,17 +147,17 @@ class DraggablePanel(wx.Panel):
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
 class DragPlane(wx.Panel):
-    def __init__(self, parent, draggablePanel):
-        wx.Panel.__init__(self, parent, name=draggablePanel.GetName()+"_dragpanel", size=parent.GetSize())
+    def __init__(self, parent, draggableControl):
+        super().__init__(parent, name=draggableControl.GetName()+"_dragplane", size=parent.GetSize(), style=wx.TRANSPARENT_WINDOW)
         self.__parent__ = parent
-        self.__dp__ = draggablePanel
-        draggablePanel.Reparent(self)
+        self.__dp__ = draggableControl
+        draggableControl.Reparent(self)
         self.Bind(wx.EVT_PAINT,self.onPaint)
         self.paintStyler = PaintStyler()
 
     def Destroy(self):
         self.__dp__.Reparent(self.__parent__)
-        wx.Panel.Destroy(self)
+        super().Destroy()
 
     def onPaint(self, event):
         event.Skip()
@@ -168,7 +168,7 @@ class DragPlane(wx.Panel):
         w,h = self.GetClientSize()
         dc.DrawRectangle(0,0,w,h)
 
-class DraggableDropTarget(DraggablePanel):
+class DraggableDropTarget(DraggableControl):
     def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
         super().__init__(parent, draggable, portable, *args, **kwargs)
         self.parent = parent
@@ -190,7 +190,7 @@ class DraggableDropTarget(DraggablePanel):
     def bindToDraggableEvents(self, draggable):
         log.debug(function=self.bindToDraggableEvents, args=(self.GetName(), draggable.GetName()))
         assert draggable
-        assert isinstance(draggable, DraggablePanel)
+        assert isinstance(draggable, DraggableControl)
         draggable.Bind(EVT_DRAGGABLE_HOVER, self.onDraggableHover)
         draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
         draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
@@ -214,6 +214,7 @@ class DraggableDropTarget(DraggablePanel):
     def onDraggableHover(self, event):
         if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()):
             self.__draggableOver__ = True
+            event.obj.Refresh()
         else:
             self.__draggableOver__ = False
         self.Refresh()
@@ -222,7 +223,7 @@ class DraggableDropTarget(DraggablePanel):
     def onDraggableRelease(self, event):
         log.debug(function=self.onDraggableRelease, args=self.GetName())
         event.Skip(False)
-        assert isinstance(event.obj, DraggablePanel)
+        assert isinstance(event.obj, DraggableControl)
         if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()):
             event.obj.accept(self)
             self.__draggableOver__ = False
@@ -264,7 +265,7 @@ class DraggableDropFrame(wx.Frame):
 
     def bindToDraggableEvents(self, draggable):
         assert draggable
-        assert isinstance(draggable, DraggablePanel)
+        assert isinstance(draggable, DraggableControl)
         draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
         draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
 
