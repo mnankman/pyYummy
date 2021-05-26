@@ -125,7 +125,6 @@ class DraggableControl(wx.Panel):
             self.Move((mx-ox, my-oy))
             hoverEvt = DraggableHoverEvent(pos=self.GetScreenPosition(), obj=self)
             wx.PostEvent(self, hoverEvt)
-            #self.Refresh()
 
     def OnMouseUp(self, event):
         if not self.isDraggable(): return

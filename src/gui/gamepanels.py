@@ -62,9 +62,10 @@ class BoardPanel(TileWidgetView):
         log.debug("", function=self.findTileSetWidgetByOverlap, args=(rect,), returns=result)
         return result
 
-    def triggerTileSetWidgets(self, event):
+    def triggerTileSetWidgets(self, pos, widget):
         for tileSetWidget in self.getObjectsByType(TileSetWidget):
-            tileSetWidget.onTileHover(event)
+            if util.rectsOverlap(widget.GetScreenRect(), tileSetWidget.GetScreenRect()):
+                tileSetWidget.onTileHover(pos, widget)
 
     def addTileSetWidget(self, set, pos=None):
         assert isinstance (set, model.Set)
@@ -79,39 +80,38 @@ class BoardPanel(TileWidgetView):
                 tileWidget.Reparent(tileSetWidget)
         tileSetWidget.refreshLayout()
 
-    def onTileSetRelease(self, event):
-        x,y = self.getEventPosition(event)
-        log.debug(function=self.onTileSetRelease, args=((x,y), event.obj))
-        tileSetWidget = event.obj
+    def onTileSetRelease(self, pos, tileSetWidget):
+        x,y = self.ScreenToClient(pos)
+        log.debug(function=self.onTileSetRelease, args=((x,y), tileSetWidget))
         tileSetWidget.accept(self)
-        tileSetWidget.setPos(event.pos)
+        tileSetWidget.setPos(pos)
 
-    def onTileSetHover(self, event):
+    def onTileSetHover(self, pos, tileSetWidget):
         log.debug(function=self.onTileSetHover, args=event.pos)
-        self.triggerTileSetWidgets(event)
+        self.triggerTileSetWidgets(pos, tileSetWidget)
 
-    def onTileHover(self, event):
+    def onTileHover(self, pos, tileWidget):
         #log.debug(function=self.onTileHover, args=(event.pos, event.obj.tile))
-        self.triggerTileSetWidgets(event)
+        self.triggerTileSetWidgets(pos, tileWidget)
 
-    def onTileRelease(self, event):
-        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.GetName()))
-        x,y = self.getEventPosition(event)
-        tw,th = event.obj.GetSize()
-        tile = event.obj.tile
+    def onTileRelease(self, pos, tileWidget):
+        log.debug(function=self.onTileRelease, args=(pos, tileWidget.GetName()))
+        x,y = self.ScreenToClient(pos)
+        tw,th = tileWidget.GetSize()
+        tile = tileWidget.tile
         tileSetWidget = self.findTileSetWidgetByOverlap((x,y,tw,th))
         if tileSetWidget:
-            tileSetWidget.onTileRelease(event)
+            tileSetWidget.onTileRelease(pos, tileWidget)
         else:
-            if (util.insideRect(event.obj.GetScreenRect(), self.GetScreenRect())):
-                log.debug ("released on board:", (x,y), event.obj.tile.toString())
-                event.obj.accept(self)
+            if (util.insideRect(tileWidget.GetScreenRect(), self.GetScreenRect())):
+                log.debug ("released on board:", (x,y), tile.toString())
+                tileWidget.accept(self)
                 #move the tile to the board, this will result in a new instance of model.Set containing the tile:
                 tile.move(self.board) 
                 #tile.container is an instance of model.Set, set the position on the board:
                 tile.getContainer().setPos((x-3,y-4))
             else:
-                event.obj.reject()
+                tileWidget.reject()
         self.Refresh()
 
     def onMsgBoardModified(self, payload):
@@ -190,16 +190,16 @@ class PlatePanel(TileWidgetView):
         self.refreshTiles()
         self.Refresh()
 
-    def onTileRelease(self, event):
-        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.tile))
-        tile = event.obj.tile
+    def onTileRelease(self, pos, tileWidget):
+        log.debug(function=self.onTileRelease, args=(pos, tileWidget.tile))
+        tile = tileWidget.tile
         if tile.plate == self.player.getPlate():
-            event.obj.accept(self)
+            tileWidget.accept(self)
         else:
-            event.obj.reject()
+            tileWidget.reject()
 
 
-class GamePanel(TileWidgetView):    
+class GamePanel(draggable.DraggableDropTarget):    
     def __init__(self, parent, cntrlr, player):
         super().__init__(parent=parent, name="game panel", size=(800,600), style=wx.TRANSPARENT_WINDOW)
 #        super().__init__(parent=parent)
@@ -247,10 +247,6 @@ class GamePanel(TileWidgetView):
         return self.getGame().getPlayerByName(self.playerName)
 
     def reset(self):
-        for tileSetWidget in self.getObjectsByType(TileSetWidget):
-            tileSetWidget.Destroy()
-        for tileWidget in self.getObjectsByType(TileWidget):
-            tileWidget.Destroy()
         for playerWidget in self.getObjectsByType(PlayerWidget):
             player = self.getGame().getPlayerByName(playerWidget.player.getName())
             playerWidget.reset(player)
@@ -272,22 +268,6 @@ class GamePanel(TileWidgetView):
 
     def toggleSort(self):
         self.platePanel.toggleSort()
-
-    '''
-    def onMsgNewGame(self, payload):
-        log.debug(function=self.onMsgNewGame, args=payload)
-        game = payload["game"]
-        if game:
-            self.reset(game)
-            
-    def onMsgNewPlayer(self, payload):
-        log.debug(function=self.onMsgNewPlayer, args=payload)
-        player = payload["player"]
-        if player:
-            assert isinstance(player, model.Player)
-            player.subscribe(self, "msg_object_modified", self.onMsgPlayerModified)
-        pass
-    '''
 
     def onMsgGameLoaded(self, payload):
         log.debug(function=self.onMsgGameLoaded, args=payload)
@@ -318,29 +298,3 @@ class GamePanel(TileWidgetView):
                 if self.getGame().getCurrentPlayer() == player:
                     self.refresh()
 
-    def onTileRelease(self, event):
-        log.debug(function=self.onTileRelease, args=(event.pos, event.obj.tile))
-        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
-            self.boardPanel.onTileRelease(event)
-        elif util.insideRect(event.pos, self.platePanel.GetScreenRect()):
-            self.platePanel.onTileRelease(event)
-        else:
-            event.obj.reject()
-
-    def onTileHover(self, event):
-        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
-            self.boardPanel.onTileHover(event)
-        elif util.insideRect(event.pos, self.platePanel.GetScreenRect()):
-            self.platePanel.onTileHover(event)
-
-    def onTileSetHover(self, event):
-        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
-            self.boardPanel.onTileHover(event)
-    
-    def onTileSetRelease(self, event):
-        x,y = self.getEventPosition(event)
-        log.debug("*********************************", function=self.onTileSetRelease, args=((x,y), obj))
-        if util.insideRect(event.pos, self.boardPanel.GetScreenRect()):
-            self.boardPanel.onTileRelease(event)
-        else: 
-            event.obj.reject()

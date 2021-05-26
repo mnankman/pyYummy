@@ -119,7 +119,6 @@ class TileSetWidget(TileWidgetView):
         return tileWidget
     
     def refreshLayout(self):
-        tw,th = TileWidget.DEFAULTSIZE
         xOffset = 5
         self.NewTilePosList = [xOffset]
         for tile in self.set.getOrderedTiles():
@@ -134,23 +133,19 @@ class TileSetWidget(TileWidgetView):
                 self.NewTilePosList.append(xOffset)
         self.updateSize()
 
-
-    def onTileHover(self, event):
-        tile = event.obj.tile
-        #if util.rectsOverlap(event.obj.GetScreenRect(), self.GetScreenRect()) and self.set.tileFitPosition(tile)>0:
-        if self.isDraggableOver() and self.set.tileFitPosition(tile)>0:
+    def onTileHover(self, pos, tileWidget):
+        tile = tileWidget.tile
+        if self.set.tileFitPosition(tile)>0:
             self.highlight = True
-            self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
+            self.newTilePos = self.getTilePosInSet(pos, tileWidget)
         else:
             self.highlight = False
             self.newTilePos = None
         self.Refresh()
 
-    def onTileRelease(self, event):
-        tileWidget = event.obj
-        tile = event.obj.tile
-        x,y = event.pos
-        self.newTilePos = self.getTilePosInSet(event.pos, event.obj)
+    def onTileRelease(self, pos, tileWidget):
+        tile = tileWidget.tile
+        self.newTilePos = self.getTilePosInSet(pos, tileWidget)
         if tile.move(self.set, self.newTilePos):
             tileWidget.accept(self)
             self.highlight = False

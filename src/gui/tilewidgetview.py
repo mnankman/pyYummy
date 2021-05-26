@@ -23,14 +23,6 @@ class TileWidgetView(draggable.DraggableDropTarget):
         else:
             return self.zoomfactor
     
-    def getObjectsByType(self, type):
-        result = []
-        children = self.GetChildren()
-        for c in children:
-            if isinstance(c, type):
-                result.append(c)
-        return result
-
     def getTileWidgets(self):
         return self.getObjectsByType(TileWidget)
 
@@ -68,28 +60,25 @@ class TileWidgetView(draggable.DraggableDropTarget):
         self.__dropTargets__[target] = enabled
  
     def onDraggableHover(self, event):
-        if isinstance(event.obj, TileWidget):
-            self.onTileHover(event)
         super().onDraggableHover(event)
+        if isinstance(event.obj, TileWidget):
+            self.onTileHover(event.pos, event.obj)
 
     def onDraggableRelease(self, event):
-        if isinstance(event.obj, TileWidget):
-            self.onTileRelease(event)
         super().onDraggableRelease(event)
+        if isinstance(event.obj, TileWidget):
+            self.onTileRelease(event.pos, event.obj)
 
     def onDraggableAccept(self, event):
         super().onDraggableAccept(event)
 
-    def onTileHover(self, event):
+    def onTileHover(self, pos, tileWidget):
+        #subclasses should override this method to implement specific behaviour 
         pass
 
-    def onTileRelease(self, event):
-        log.debug(type(self), ".onTileRelease(", event.pos, ",", event.obj.tile.toString())
-        if isinstance(event.obj, TileWidget):
-            tileWidget = event.obj
-            #for now, the default actions is to reject any tilewidget that is dropped on it
-            #subclasses should override this method to implement specific behaviour 
-            tileWidget.reject()
+    def onTileRelease(self, pos, tileWidget):
+        #subclasses should override this method to implement specific behaviour 
+        pass
 
     def getEventPosition(self, event):
         return self.ScreenToClient(event.pos)

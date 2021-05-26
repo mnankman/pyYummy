@@ -83,7 +83,7 @@ class ButtonBar(wx.Panel):
 
 class GameWindow(draggable.DraggableDropFrame):
     def __init__(self, controller, playerName):
-        super().__init__(parent=None, title=playerName, name="Game Window", style=wx.TRANSPARENT_WINDOW)
+        super().__init__(parent=None, title=playerName, name="Game Window")
         iconFile = RESOURCES+"/yummy-icon-28-white.png"
         icon = wx.Icon(iconFile, wx.BITMAP_TYPE_ICO)
         self.SetIcon(icon)
