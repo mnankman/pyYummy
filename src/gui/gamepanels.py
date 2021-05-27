@@ -20,7 +20,7 @@ class BoardPanel(TileWidgetView):
         assert isinstance(board, model.Board)
         log.debug(function=self.reset, args=board)
         self.board = board
-        self.board.subscribe(self, "msg_new_child", self.onMsgBoardNewChild)
+        #self.board.subscribe(self, "msg_new_child", self.onMsgBoardNewChild)
         self.board.subscribe(self, "msg_object_modified", self.onMsgBoardModified)
         self.rebuild()
 
@@ -107,7 +107,7 @@ class BoardPanel(TileWidgetView):
                 log.debug ("released on board:", (x,y), tile.toString())
                 tileWidget.accept(self)
                 #move the tile to the board, this will result in a new instance of model.Set containing the tile:
-                tile.move(self.board) 
+                tile.move(self.board) #this will add a new child (a new Set) to the board, and will be handled in onMsgBoardModified
                 #tile.container is an instance of model.Set, set the position on the board:
                 tile.getContainer().setPos((x-3,y-4))
             else:
@@ -120,6 +120,9 @@ class BoardPanel(TileWidgetView):
             self.rebuild()
             self.Refresh()
 
+    """
+    OBSOLETE?
+    """
     def onMsgBoardNewChild(self, payload):
         log.debug(function=self.onMsgBoardNewChild)
         if payload["object"] == self.board and payload["child"] != None:
