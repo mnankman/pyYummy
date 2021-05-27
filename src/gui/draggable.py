@@ -8,6 +8,11 @@ DraggableReleaseEvent, EVT_DRAGGABLE_RELEASE = wx.lib.newevent.NewEvent()
 DraggableAcceptEvent, EVT_DRAGGABLE_ACCEPT = wx.lib.newevent.NewEvent()
 
 class DraggableControl(wx.Panel):
+    """
+    This class provides all the functionality needed for dragging and dropping. 
+    Instances of this class emit the events: DraggableHoverEvent, DraggableReleaseEvent and DraggableAcceptEvent. 
+    Droptargets need to bind to these events when they need to respond to these events.
+    """
     def __init__(self, parent, draggable=True, portable=True, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
         self.grandparent = parent.GetParent()
@@ -46,6 +51,12 @@ class DraggableControl(wx.Panel):
         return self.__portable__
 
     def accept(self, newParent):
+        """
+        This method is called by a drop target when it accepts this instance when it is dropped.
+        Parameters:
+        - newParent: the Drop Target that accepts this instance as a new child object
+        Generates event: DraggableAcceptEvent
+        """
         log.debug(function=self.accept, args=(self.GetName(), newParent.GetName()))
         if self.isPortable():
             self.Reparent(newParent)
@@ -58,11 +69,19 @@ class DraggableControl(wx.Panel):
         wx.PostEvent(self, acceptEvt)
 
     def reject(self, restore=False):
+        """
+        This method is called by a drop target when it does not accept this instance when it is dropped.
+        Parameters: 
+        - restore: indicates whether this instance should be moved back to the position it was dragged from (default is False)
+        """
         log.debug(function=self.reject, args=self.GetName())
         if restore:
             self.restorePositionBeforeDrag()
 
     def restorePositionBeforeDrag(self):
+        """
+        Restores the position and parent of this instance to the position within that parent's rectangle, before it was dragged.
+        """
         log.debug(function=self.restorePositionBeforeDrag, args=(self.__parentBeforeDrag__,self.__posBeforeDrag__))
         if self.__parentBeforeDrag__ != None and self.__posBeforeDrag__ != None:
             if self.isPortable(): self.Reparent(self.__parentBeforeDrag__)
@@ -72,6 +91,13 @@ class DraggableControl(wx.Panel):
             self.__parentBeforeDrag__ = None
 
     def dragStart(self):
+        """
+        THis method is called when this draggable gets mouse capture and is being dragged.
+        This will Initiate the dragging state for this instance. It's original parent and the position within that parent is stored.
+        If this instance is a portable draggable (i.e. it can be dragged out of a panel and into another panel), then a temporary, 
+        transparent drag plane is created that becomes the parent during the period this instance is dragged. When the draggable is 
+        released, the drag plane is destroyed.
+        """
         if not self.isBeingDragged():
             log.debug(function=self.dragStart, args=self.GetName())
             self.__posBeforeDrag__ = self.GetPosition()
@@ -101,6 +127,9 @@ class DraggableControl(wx.Panel):
         return tlp
 
     def drop(self):
+        """
+        This method is called when the draggable loses mouse capture
+        """
         if self.isBeingDragged():
             log.debug(function=self.drop, args=self.GetName())
             if (self.HasCapture()): self.ReleaseMouse()
@@ -146,6 +175,9 @@ class DraggableControl(wx.Panel):
         self.SetCursor(wx.Cursor(wx.CURSOR_ARROW))
 
 class DragPlane(wx.Panel):
+    """
+    An instance of this class represents a temporary "drag plane" for a portable draggable
+    """
     def __init__(self, parent, draggableControl):
         super().__init__(parent, name=draggableControl.GetName()+"_dragplane", size=parent.GetSize(), style=wx.TRANSPARENT_WINDOW)
         self.__parent__ = parent
@@ -167,7 +199,40 @@ class DragPlane(wx.Panel):
         w,h = self.GetClientSize()
         dc.DrawRectangle(0,0,w,h)
 
-class DraggableDropTarget(DraggableControl):
+class DraggableEventListener():
+    """
+    THis class provides the basic interface for DraggableEvent listeners 
+    """    
+    def bindToDraggableEvents(self, draggable):
+        """
+        """
+        log.debug(function=self.bindToDraggableEvents, args=(self.GetName(), draggable.GetName()))
+        assert draggable
+        assert isinstance(draggable, DraggableControl)
+        draggable.Bind(EVT_DRAGGABLE_HOVER, self.onDraggableHover)
+        draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
+        draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
+
+    def onDraggableHover(self, event):
+        """
+        """
+        pass
+    
+    def onDraggableRelease(self, event):
+        """
+        """
+        pass
+    
+    def onDraggableAccept(self, event):
+        """
+        """
+        pass
+
+class DraggableDropTarget(DraggableControl, DraggableEventListener):
+    """
+    Instances of this class can respond to draggable events. Since they also derive from DraggableCOntrol, 
+    these instances can be dragged and dropped themselvers too.
+    """
     def __init__(self, parent, draggable=False, portable=False, *args, **kwargs):
         super().__init__(parent, draggable, portable, *args, **kwargs)
         self.parent = parent
@@ -179,6 +244,8 @@ class DraggableDropTarget(DraggableControl):
         self.paintStyler = PaintStyler()
 
     def getObjectsByType(self, type):
+        """
+        """
         result = []
         children = self.GetChildren()
         for c in children:
@@ -186,18 +253,14 @@ class DraggableDropTarget(DraggableControl):
                 result.append(c)
         return result
 
-    def bindToDraggableEvents(self, draggable):
-        log.debug(function=self.bindToDraggableEvents, args=(self.GetName(), draggable.GetName()))
-        assert draggable
-        assert isinstance(draggable, DraggableControl)
-        draggable.Bind(EVT_DRAGGABLE_HOVER, self.onDraggableHover)
-        draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
-        draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
-
     def isMouseOver(self):
+        """
+        """
         return self.__mouseOver__
 
     def isDraggableOver(self):
+        """
+        """
         return self.__draggableOver__
     
     def onMouseEnter(self, event):
@@ -258,22 +321,15 @@ class DraggableDropTarget(DraggableControl):
         dc.DrawText(lbl, tx, ty)
         dc.DrawRectangle(0,0,w,h)
 
-class DraggableDropFrame(wx.Frame):
+class DraggableDropFrame(wx.Frame, DraggableEventListener):
     def __init__(self, parent, *args, **kwargs):
         wx.Frame.__init__(self, parent, *args, **kwargs)
 
-    def bindToDraggableEvents(self, draggable):
-        assert draggable
-        assert isinstance(draggable, DraggableControl)
-        draggable.Bind(EVT_DRAGGABLE_RELEASE, self.onDraggableRelease)
-        draggable.Bind(EVT_DRAGGABLE_ACCEPT, self.onDraggableAccept)  
-
     def onDraggableRelease(self, event):
+        """
+        """
         log.debug(function=self.onDraggableRelease, args=self.GetName())
         event.obj.reject(True)
-
-    def onDraggableAccept(self, event):
-        pass
 
 class NoneSizer(wx.Sizer):
     def __init__(self):
