@@ -199,7 +199,7 @@ class PlatePanel(TileWidgetView):
             tileWidget.reject()
 
 
-class GamePanel(draggable.DraggableDropTarget):    
+class GamePanel(wx.Panel):    
     def __init__(self, parent, cntrlr, player):
         super().__init__(parent=parent, name="game panel", size=(800,600), style=wx.TRANSPARENT_WINDOW)
 #        super().__init__(parent=parent)
@@ -218,7 +218,6 @@ class GamePanel(draggable.DraggableDropTarget):
         self.createPlayerWidgets()
 
         self.platePanel.addTileWidgetDropTarget(self.boardPanel)
-        #self.boardPanel.addTileWidgetDropTarget(self)
 
         flexgrid = wx.FlexGridSizer(rows=3, cols=1, vgap=2, hgap=2)
         vbox.Add(flexgrid, 2, wx.EXPAND)
@@ -247,9 +246,10 @@ class GamePanel(draggable.DraggableDropTarget):
         return self.getGame().getPlayerByName(self.playerName)
 
     def reset(self):
-        for playerWidget in self.getObjectsByType(PlayerWidget):
-            player = self.getGame().getPlayerByName(playerWidget.player.getName())
-            playerWidget.reset(player)
+        for c in self.GetChildren():
+            if isinstance(c, PlayerWidget):
+                player = self.getGame().getPlayerByName(c.player.getName())
+                c.reset(player)
         self.getGame().subscribe(self, "msg_object_modified", self.onMsgGameModified)
         self.boardPanel.reset(self.getGame().board)
         self.platePanel.reset(self.getPlayer())
